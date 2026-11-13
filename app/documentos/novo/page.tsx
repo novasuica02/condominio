@@ -14,11 +14,11 @@ export default function NovoDocumentoPage() {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   
-  const supabase = createClient();
+  // NÃO criamos o supabase aqui fora.
 
-  // Busca as categorias do banco
   useEffect(() => {
     async function carregarCategorias() {
+      const supabase = createClient(); // Criado dentro da função
       const { data } = await supabase
         .from("categorias_documentos")
         .select("*")
@@ -30,7 +30,7 @@ export default function NovoDocumentoPage() {
       }
     }
     carregarCategorias();
-  }, [supabase]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,11 +40,11 @@ export default function NovoDocumentoPage() {
     }
 
     setLoading(true);
+    const supabase = createClient(); // Criado dentro da função
 
     const fileExt = arquivo.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
     
-    // Faz o upload para o bucket 'documentos'
     const { error: uploadError } = await supabase.storage
       .from("documentos")
       .upload(fileName, arquivo);
@@ -55,14 +55,12 @@ export default function NovoDocumentoPage() {
       return;
     }
 
-    // Pega a URL pública
     const { data: { publicUrl } } = supabase.storage
       .from("documentos")
       .getPublicUrl(fileName);
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Salva na tabela
     const { error: dbError } = await supabase.from("documentos").insert([
       {
         titulo,
@@ -121,7 +119,6 @@ export default function NovoDocumentoPage() {
 
           <div>
             <label className="block text-sm font-medium mb-1.5 text-slate-700">Arquivo (PDF ou Imagem)</label>
-            {/* INPUT DE ARQUIVO PURO - RESOLVE O PROBLEMA DE TRAVAR */}
             <input
               type="file"
               required
@@ -129,7 +126,6 @@ export default function NovoDocumentoPage() {
               onChange={(e) => setArquivo(e.target.files?.[0] || null)}
               className="flex w-full h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-medium file:mr-4 file:px-4 file:py-1.5 file:rounded-md hover:file:bg-emerald-100 transition-all cursor-pointer"
             />
-            <p className="text-xs text-slate-500 mt-2">O arquivo será salvo com um nome seguro no servidor.</p>
           </div>
 
           <Button type="submit" disabled={loading} className="mt-4 bg-emerald-600 hover:bg-emerald-700 h-11 text-base">

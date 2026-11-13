@@ -18,9 +18,10 @@ export default function CategoriasPage() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
-  const supabase = createClient();
+  // NÃO criamos o supabase aqui fora.
 
   const carregarCategorias = async () => {
+    const supabase = createClient(); // Criado dentro da função
     const { data } = await supabase.from("categorias_documentos").select("*").order("nome");
     if (data) setCategorias(data);
     setLoading(false);
@@ -28,13 +29,14 @@ export default function CategoriasPage() {
 
   useEffect(() => {
     carregarCategorias();
-  }, [supabase]);
+  }, []);
 
   const handleCriar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novaCategoria.trim()) return;
     
     setSalvando(true);
+    const supabase = createClient(); // Criado dentro da função
     const { error } = await supabase.from("categorias_documentos").insert([{ nome: novaCategoria.trim() }]);
     
     if (error) {
@@ -49,6 +51,7 @@ export default function CategoriasPage() {
   const handleDeletar = async (id: number) => {
     if (!confirm("Tem certeza que deseja apagar esta categoria?")) return;
     
+    const supabase = createClient(); // Criado dentro da função
     const { error } = await supabase.from("categorias_documentos").delete().eq("id", id);
     if (error) {
       alert("Erro ao deletar: " + error.message);
