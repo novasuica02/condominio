@@ -29,12 +29,15 @@ export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   
-  const supabase = createClient();
+  // O createClient foi removido daqui de cima
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
+
+    // O createClient é criado aqui dentro, apenas quando o botão é clicado no navegador
+    const supabase = createClient();
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
