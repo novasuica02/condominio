@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Save, UserCircle } from "lucide-react";
 
-// Máscara de telefone
 const formatarTelefone = (valor: string) => {
   let apenasNumeros = valor.replace(/\D/g, "").slice(0, 11);
   if (apenasNumeros.length > 10) return apenasNumeros.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
@@ -21,7 +20,6 @@ export default function PerfilPage() {
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
 
-  // Estados do formulário
   const [nome, setNome] = useState("");
   const [unidade, setUnidade] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -30,11 +28,11 @@ export default function PerfilPage() {
   const [nomeRecado, setNomeRecado] = useState("");
   const [telRecado, setTelRecado] = useState("");
 
-  const supabase = createClient();
+  // REMOVIDO: const supabase = createClient();
 
-  // Busca os dados atuais do usuário ao carregar a página
   useEffect(() => {
     async function carregarPerfil() {
+      const supabase = createClient(); // <-- ADICIONADO AQUI
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
@@ -51,13 +49,14 @@ export default function PerfilPage() {
       setLoading(false);
     }
     carregarPerfil();
-  }, [supabase]);
+  }, []);
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setSalvando(true);
     setMensagem(null);
 
+    const supabase = createClient(); // <-- ADICIONADO AQUI
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
