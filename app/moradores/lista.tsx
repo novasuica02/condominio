@@ -23,9 +23,12 @@ export default function ListaMoradores() {
   const [busca, setBusca] = useState("");
   const [moradorSelecionado, setMoradorSelecionado] = useState<Morador | null>(null);
 
-  const supabase = createClient();
+  // NÃO criamos o supabase aqui fora. Criamos apenas dentro do useEffect.
 
   useEffect(() => {
+    // Cria o cliente apenas no lado do cliente (navegador)
+    const supabase = createClient();
+
     async function carregarMoradores() {
       const { data } = await supabase
         .from("profiles")
@@ -36,7 +39,7 @@ export default function ListaMoradores() {
       setLoading(false);
     }
     carregarMoradores();
-  }, [supabase]);
+  }, []); // Array vazio para rodar apenas uma vez
 
   const moradoresFiltrados = moradores.filter((m) => 
     m.nome?.toLowerCase().includes(busca.toLowerCase()) || 
@@ -104,9 +107,11 @@ export default function ListaMoradores() {
         )}
       </div>
 
+      {/* MODAL DE DETALHES */}
       {moradorSelecionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
+            
             <div className="bg-slate-100 p-4 border-b flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-slate-600" />
