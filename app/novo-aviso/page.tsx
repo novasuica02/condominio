@@ -11,11 +11,14 @@ export default function NovoAvisoPage() {
   const [corpo, setCorpo] = useState("");
   const [loading, setLoading] = useState(false);
   
-  const supabase = createClient();
+  // NÃO criamos o supabase aqui fora.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Criado AQUI DENTRO, pois só roda no navegador quando o botão é clicado
+    const supabase = createClient();
 
     // Pega o usuário logado para salvar o ID do autor
     const { data: { user } } = await supabase.auth.getUser();
@@ -71,7 +74,7 @@ export default function NovoAvisoPage() {
             <textarea
               required
               placeholder="Escreva os detalhes do aviso aqui..."
-              className="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[200px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
               value={corpo}
               onChange={(e) => setCorpo(e.target.value)}
             />
