@@ -24,7 +24,6 @@ async function PainelContent() {
 
   return (
     <div className="flex-1 w-full flex flex-col min-h-screen bg-slate-50/50">
-      {/* Barra Superior */}
       <header className="bg-white border-b w-full">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -37,7 +36,8 @@ async function PainelContent() {
             <span className="text-sm text-slate-500 hidden sm:block">
               {data.user.email}
             </span>
-            <form action="/auth/signout" method="post">
+            {/* AQUI ESTÁ A ROTA ATUALIZADA PARA LOGOUT */}
+            <form action="/auth/logout" method="post">
               <Button variant="outline" size="sm">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sair
@@ -47,7 +47,6 @@ async function PainelContent() {
         </div>
       </header>
 
-      {/* Conteúdo do Painel */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8">
         <div className="flex justify-between items-end mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Área do Morador</h1>
@@ -58,10 +57,8 @@ async function PainelContent() {
           )}
         </div>
         
-        {/* Grid de Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           
-          {/* Card: Mural de Avisos */}
           <Link href="/avisos" className="group">
             <div className="bg-white p-6 rounded-xl border shadow-sm hover:border-blue-500 hover:shadow-md transition-all h-full">
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -74,7 +71,6 @@ async function PainelContent() {
             </div>
           </Link>
 
-          {/* Card: Meu Perfil */}
           <Link href="/perfil" className="group">
             <div className="bg-white p-6 rounded-xl border shadow-sm hover:border-purple-500 hover:shadow-md transition-all h-full">
               <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -87,7 +83,6 @@ async function PainelContent() {
             </div>
           </Link>
 
-          {/* Card: Moradores */}
           <Link href="/moradores" className="group">
             <div className="bg-white p-6 rounded-xl border shadow-sm hover:border-slate-500 hover:shadow-md transition-all h-full">
               <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -100,7 +95,6 @@ async function PainelContent() {
             </div>
           </Link>
 
-          {/* Card: Chamados (Em Breve) */}
           <div className="bg-white p-6 rounded-xl border border-dashed opacity-60 cursor-not-allowed h-full">
             <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-4">
               <Wrench className="w-6 h-6" />
@@ -111,7 +105,6 @@ async function PainelContent() {
             </p>
           </div>
 
-          {/* Card: Documentos (Em Breve) */}
           <div className="bg-white p-6 rounded-xl border border-dashed opacity-60 cursor-not-allowed h-full">
             <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mb-4">
               <FileText className="w-6 h-6" />

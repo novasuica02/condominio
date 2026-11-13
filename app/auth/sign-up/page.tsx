@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 "use client";
 
 import { useState } from "react";
@@ -13,13 +15,10 @@ const formatarTelefone = (valor: string) => {
   apenasNumeros = apenasNumeros.slice(0, 11); // Limita a 11 dígitos
 
   if (apenasNumeros.length > 10) {
-    // Celular: (11) 99999-9999
     return apenasNumeros.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
   } else if (apenasNumeros.length > 6) {
-    // Fixo: (11) 9999-9999
     return apenasNumeros.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
   } else if (apenasNumeros.length > 2) {
-    // Digitando...
     return apenasNumeros.replace(/^(\d{2})(\d{0,5}).*/, "($1) $2");
   } else if (apenasNumeros.length > 0) {
     return apenasNumeros.replace(/^(\d{0,2}).*/, "($1");
@@ -30,20 +29,13 @@ const formatarTelefone = (valor: string) => {
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
-  // Dados Pessoais
   const [nome, setNome] = useState("");
   const [unidade, setUnidade] = useState("");
   const [telefone, setTelefone] = useState("");
-  
-  // Localização
   const [maps, setMaps] = useState("");
   const [pontoRef, setPontoRef] = useState("");
-  
-  // Recados
   const [nomeRecado, setNomeRecado] = useState("");
   const [telRecado, setTelRecado] = useState("");
-  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   
@@ -54,7 +46,6 @@ export default function SignUpPage() {
     setLoading(true);
     setMessage(null);
 
-    // 1. Cria o usuário no Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -72,7 +63,6 @@ export default function SignUpPage() {
       return;
     }
 
-    // 2. Se deu certo, atualiza o restante dos dados na tabela profiles
     if (authData.user) {
       const { error: profileError } = await supabase
         .from("profiles")
@@ -94,7 +84,6 @@ export default function SignUpPage() {
     setLoading(false);
     setMessage("Conta criada com sucesso!");
     
-    // Redireciona para o painel
     setTimeout(() => {
       window.location.href = "/protected";
     }, 1000);
@@ -118,7 +107,6 @@ export default function SignUpPage() {
 
       <form onSubmit={handleSignUp} className="flex flex-col gap-5">
         
-        {/* BLOCO 1: DADOS DO MORADOR */}
         <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">1. Seus Dados</h2>
           
@@ -134,17 +122,11 @@ export default function SignUpPage() {
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block text-slate-700">Seu WhatsApp</label>
-              <Input 
-                required 
-                placeholder="(11) 99999-9999" 
-                value={telefone} 
-                onChange={(e) => setTelefone(formatarTelefone(e.target.value))} 
-              />
+              <Input required placeholder="(11) 99999-9999" value={telefone} onChange={(e) => setTelefone(formatarTelefone(e.target.value))} />
             </div>
           </div>
         </div>
 
-        {/* BLOCO 2: LOCALIZAÇÃO */}
         <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">2. Localização (Para Entregas)</h2>
           
@@ -158,7 +140,6 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        {/* BLOCO 3: RECADOS */}
         <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">3. Contato de Recados</h2>
           <p className="text-xs text-slate-500 -mt-2">Caso não te encontremos, com quem falamos?</p>
@@ -170,16 +151,11 @@ export default function SignUpPage() {
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block text-slate-700">Telefone de Recados</label>
-              <Input 
-                placeholder="(11) 99999-9999" 
-                value={telRecado} 
-                onChange={(e) => setTelRecado(formatarTelefone(e.target.value))} 
-              />
+              <Input placeholder="(11) 99999-9999" value={telRecado} onChange={(e) => setTelRecado(formatarTelefone(e.target.value))} />
             </div>
           </div>
         </div>
 
-        {/* BLOCO 4: ACESSO */}
         <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">4. Dados de Acesso</h2>
           
