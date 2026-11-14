@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Proxy vazio: apenas repassa a requisição sem verificar sessão.
-// A proteção de rotas é feita diretamente nas páginas (ex: protected/page.tsx).
+// Função de proxy vazia: apenas repassa a requisição sem fazer nada.
+// Isso desativa a verificação de sessão do Supabase temporariamente.
 export function proxy() {
   return NextResponse.next();
 }
