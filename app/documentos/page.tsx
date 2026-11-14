@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, FileText, Download } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Download, Eye } from "lucide-react";
 
 async function ListaDocumentos() {
   const supabase = await createClient();
@@ -47,14 +47,26 @@ async function ListaDocumentos() {
                     <FileText className="w-5 h-5" />
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex gap-4">
+                  {/* Botão Visualizar */}
                   <a 
                     href={doc.arquivo_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-emerald-600 hover:underline text-sm font-medium"
+                  >
+                    <Eye className="w-4 h-4" /> Visualizar
+                  </a>
+
+                  {/* Botão Baixar (Força o download em alguns navegadores) */}
+                  <a 
+                    href={doc.arquivo_url} 
+                    download
+                    target="_blank" 
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-blue-600 hover:underline text-sm font-medium"
                   >
-                    <Download className="w-4 h-4" /> Baixar Arquivo
+                    <Download className="w-4 h-4" /> Baixar
                   </a>
                 </CardContent>
               </Card>
