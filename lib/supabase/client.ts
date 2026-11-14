@@ -1,14 +1,32 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-export function createClient() {
-  // O acesso deve ser DIRETO, sem ?. ou process.env["..."]
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  // Acesso direto e verificação para evitar erro na Vercel
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Verificação de segurança (Fail-Fast)
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase URL ou Key não encontradas no cliente.");
+    throw new Error("Supabase URL ou Key não encontradas no servidor.");
   }
 
-  return createBrowserClient(supabaseUrl, supabaseKey);
+  return createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // O `setAll` pode ser chamado de um Server Component.
+          // Isso pode ser ignorado se você tiver um proxy atualizando a sessão.
+        }
+      },
+    },
+  });
 }
