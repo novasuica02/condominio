@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Building2, Megaphone, Wrench, FileText, LogOut, UserCircle, Users, Shield } from "lucide-react";
+import { Building2, Megaphone, Wrench, FileText, LogOut, UserCircle, Users, Shield, HelpCircle } from "lucide-react";
 
 async function PainelContent() {
   const supabase = await createClient();
@@ -26,8 +26,18 @@ async function PainelContent() {
             </div>
             <span className="font-bold text-slate-800 text-base sm:text-lg">Nova Suíça 02</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500 hidden sm:block">{data.user.email}</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs text-slate-500 hidden sm:block mr-2">{data.user.email}</span>
+            
+            {/* BOTÃO DE AJUDA - VERMELHO E DOURADO */}
+            <Link href="/ajuda">
+              <div className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-amber-300 hover:text-amber-200 border border-amber-400/50 px-3 py-1.5 rounded-md shadow-sm transition-all cursor-pointer">
+                <HelpCircle className="w-4 h-4" />
+                <span className="text-sm font-semibold hidden sm:inline">Ajuda</span>
+              </div>
+            </Link>
+
+            {/* BOTÃO SAIR */}
             <form action="/auth/logout" method="post">
               <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3">
                 <LogOut className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Sair</span>
@@ -45,7 +55,7 @@ async function PainelContent() {
           )}
         </div>
         
-        {/* GRID: 2 colunas no celular, 3 no tablet, 4 no PC */}
+        {/* GRID DE CARDS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
           
           {/* Avisos */}
@@ -81,7 +91,7 @@ async function PainelContent() {
             </div>
           </Link>
 
-          {/* Serviços Profissionais */}
+          {/* Profissionais */}
           <Link href="/profissionais" className="group">
             <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-teal-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
