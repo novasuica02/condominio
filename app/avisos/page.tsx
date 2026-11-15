@@ -18,24 +18,31 @@ async function ListaAvisos() {
   if (!avisos || avisos.length === 0) return <div className="text-center p-12 bg-white rounded-xl border border-dashed text-slate-500">Nenhum aviso publicado.</div>;
 
   return (
-    <div className="w-full flex flex-col gap-4">
+    <div className="w-full flex flex-col gap-6">
       {avisos.map((aviso) => (
-        <Card key={aviso.id} className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3 flex flex-row items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-xl text-slate-800">{aviso.titulo}</CardTitle>
-                {/* ÍCONE DE ANEXO AQUI */}
-                {aviso.arquivo_url && (
-                  <span title="Este aviso possui um anexo" className="text-blue-500 bg-blue-50 p-1 rounded-full">
-                    <Paperclip className="w-4 h-4" />
-                  </span>
-                )}
+        <Card key={aviso.id} className="shadow-sm border-l-4 border-l-blue-500 border-t-slate-200 border-r-slate-200 border-b-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3 flex flex-row items-start justify-between bg-slate-50/50">
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-100 p-2 rounded-full text-blue-600 mt-1">
+                <Megaphone className="w-5 h-5" />
               </div>
-              <CardDescription className="mt-1">
-                {new Date(aviso.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}
-              </CardDescription>
+              <div>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-xl text-slate-800 font-bold">{aviso.titulo}</CardTitle>
+                  {aviso.arquivo_url && (
+                    <span title="Este aviso possui um anexo" className="text-blue-500 bg-blue-100 p-1 rounded-full">
+                      <Paperclip className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </div>
+                <CardDescription className="mt-1 flex items-center gap-2">
+                  <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-xs font-medium">
+                    {new Date(aviso.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </CardDescription>
+              </div>
             </div>
+            
             {isSindico && (
               <Link href={`/avisos/editar/${aviso.id}`}>
                 <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50">
@@ -44,18 +51,21 @@ async function ListaAvisos() {
               </Link>
             )}
           </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-slate-600 mb-4">{aviso.corpo}</p>
+          
+          <CardContent className="pt-4">
+            <p className="whitespace-pre-wrap text-slate-700 leading-relaxed mb-4">{aviso.corpo}</p>
             
             {aviso.arquivo_url && (
-              <a 
-                href={aviso.arquivo_url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                <Eye className="w-4 h-4" /> Visualizar Anexo
-              </a>
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <a 
+                  href={aviso.arquivo_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  <Eye className="w-4 h-4" /> Visualizar Anexo
+                </a>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -71,7 +81,7 @@ async function AvisosHeader() {
   const isSindico = profile?.role === "sindico";
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border shadow-sm">
       <div className="flex items-center gap-3">
         <Link href="/protected"><Button variant="ghost" size="icon" className="text-slate-500"><ArrowLeft className="w-5 h-5" /></Button></Link>
         <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2"><Megaphone className="w-8 h-8 text-blue-600" /> Mural de Avisos</h1>
@@ -95,9 +105,9 @@ async function AvisosHeader() {
 
 export default function AvisosPage() {
   return (
-    <div className="flex-1 w-full flex flex-col items-center p-6 md:p-12 bg-slate-50/50 min-h-screen">
+    <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-100 min-h-screen">
       <div className="w-full max-w-4xl flex flex-col gap-6">
-        <Suspense fallback={<div className="h-20 animate-pulse bg-slate-200 rounded-lg"></div>}>
+        <Suspense fallback={<div className="h-24 animate-pulse bg-slate-200 rounded-xl"></div>}>
           <AvisosHeader />
         </Suspense>
         <Suspense fallback={<div className="animate-pulse text-slate-500 p-8 text-center">Carregando avisos...</div>}>

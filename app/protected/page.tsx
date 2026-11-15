@@ -48,64 +48,81 @@ async function PainelContent() {
         {/* GRID: 2 colunas no celular, 3 no tablet, 4 no PC */}
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
           
+          {/* Avisos */}
           <Link href="/avisos" className="group">
-            <div className="bg-white p-3 sm:p-6 rounded-xl border shadow-sm hover:border-blue-500 hover:shadow-md transition-all h-full flex flex-col items-center sm:items-start text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-2 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Megaphone className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-blue-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <Megaphone className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <h2 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-slate-800 leading-tight">Mural de Avisos</h2>
-              <p className="text-[11px] sm:text-sm text-slate-500 hidden sm:block">Veja as últimas notícias e comunicados.</p>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-slate-800 leading-tight">Mural de Avisos</h2>
+              <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Notícias e comunicados</p>
             </div>
           </Link>
 
+          {/* Chamados */}
           <Link href="/chamados" className="group">
-            <div className="bg-white p-3 sm:p-6 rounded-xl border shadow-sm hover:border-orange-500 hover:shadow-md transition-all h-full flex flex-col items-center sm:items-start text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center mb-2 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-orange-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <Wrench className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <h2 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-slate-800 leading-tight">Chamados</h2>
-              <p className="text-[11px] sm:text-sm text-slate-500 hidden sm:block">Abra e acompanhe solicitações de manutenção.</p>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-slate-800 leading-tight">Chamados</h2>
+              <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Manutenção e reparos</p>
             </div>
           </Link>
 
+          {/* Documentos */}
           <Link href="/documentos" className="group">
-            <div className="bg-white p-3 sm:p-6 rounded-xl border shadow-sm hover:border-emerald-500 hover:shadow-md transition-all h-full flex flex-col items-center sm:items-start text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mb-2 sm:mb-4 group-hover:scale-110 transition-transform">
-                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-emerald-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <FileText className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <h2 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-slate-800 leading-tight">Documentos</h2>
-              <p className="text-[11px] sm:text-sm text-slate-500 hidden sm:block">Acesse atas, regimento e contratos.</p>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-slate-800 leading-tight">Documentos</h2>
+              <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Atas e regimentos</p>
             </div>
           </Link>
 
-          <Link href="/perfil" className="group">
-            <div className="bg-white p-3 sm:p-6 rounded-xl border shadow-sm hover:border-purple-500 hover:shadow-md transition-all h-full flex flex-col items-center sm:items-start text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-2 sm:mb-4 group-hover:scale-110 transition-transform">
-                <UserCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+          {/* Serviços Profissionais */}
+          <Link href="/profissionais" className="group">
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-teal-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <UserCircle className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <h2 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-slate-800 leading-tight">Meu Perfil</h2>
-              <p className="text-[11px] sm:text-sm text-slate-500 hidden sm:block">Atualize seus dados de contato e endereço.</p>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-slate-800 leading-tight">Profissionais</h2>
+              <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Indicações de confiança</p>
             </div>
           </Link>
 
+          {/* Moradores */}
           <Link href="/moradores" className="group">
-            <div className="bg-white p-3 sm:p-6 rounded-xl border shadow-sm hover:border-slate-500 hover:shadow-md transition-all h-full flex flex-col items-center sm:items-start text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center mb-2 sm:mb-4 group-hover:scale-110 transition-transform">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-slate-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <Users className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
-              <h2 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-slate-800 leading-tight">Moradores</h2>
-              <p className="text-[11px] sm:text-sm text-slate-500 hidden sm:block">Gerencie a lista de contatos e localização.</p>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-slate-800 leading-tight">Moradores</h2>
+              <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Lista de contatos</p>
             </div>
           </Link>
 
+          {/* Perfil */}
+          <Link href="/perfil" className="group">
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-purple-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <UserCircle className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-slate-800 leading-tight">Meu Perfil</h2>
+              <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Meus dados</p>
+            </div>
+          </Link>
+
+          {/* Gestão de Acessos (Apenas Síndico) */}
           {isSindico && (
             <Link href="/admin" className="group">
-              <div className="bg-white p-3 sm:p-6 rounded-xl border shadow-sm hover:border-blue-600 hover:shadow-md transition-all h-full flex flex-col items-center sm:items-start text-center sm:text-left">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-2 sm:mb-4 group-hover:scale-110 transition-transform">
-                  <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border shadow-sm hover:border-blue-600 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <Shield className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
-                <h2 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2 text-slate-800 leading-tight">Gestão</h2>
-                <p className="text-[11px] sm:text-sm text-slate-500 hidden sm:block">Gerencie os acessos dos moradores.</p>
+                <h2 className="text-sm sm:text-base font-bold mb-1 text-slate-800 leading-tight">Gestão</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">Acessos e permissões</p>
               </div>
             </Link>
           )}
