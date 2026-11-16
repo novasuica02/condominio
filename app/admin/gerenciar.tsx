@@ -13,17 +13,30 @@ export default function GerenciarUsuario({ id, roleAtual }: { id: string; roleAt
 
     setLoading(true);
     const supabase = createClient();
-    await supabase.from("profiles").update({ role: novaRole }).eq("id", id);
+    
+    // Atualiza o cargo no banco
+    const { error } = await supabase.from("profiles").update({ role: novaRole }).eq("id", id);
+    
+    if (error) {
+      alert("Erro ao alterar cargo: " + error.message);
+    } else {
+      // Recarrega a página para atualizar a lista na tela
+      window.location.reload();
+    }
     setLoading(false);
-    window.location.reload();
   };
 
   return (
     <Button 
-      variant={roleAtual === "sindico" ? "destructive" : "outline"} 
+      variant="outline" 
       size="sm" 
       onClick={toggleRole}
       disabled={loading}
+      className={`h-8 text-xs ${
+        roleAtual === "sindico" 
+          ? "bg-transparent border-red-500 text-red-400 hover:bg-red-900/30" 
+          : "bg-transparent border-slate-500 text-slate-300 hover:bg-slate-700 hover:text-white"
+      }`}
     >
       {roleAtual === "sindico" ? "Rebaixar a Morador" : "Promover a Síndico"}
     </Button>

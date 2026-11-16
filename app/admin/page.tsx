@@ -32,6 +32,7 @@ async function ListaUsuarios() {
             </div>
           </div>
           
+          {/* Mostra o botão apenas se NÃO for o próprio usuário logado */}
           {user.id !== p.id && (
             <GerenciarUsuario id={p.id} roleAtual={p.role} />
           )}
