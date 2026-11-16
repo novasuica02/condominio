@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, UserCircle } from "lucide-react";
+import { Save, UserCircle } from "lucide-react";
+import Header from "@/components/Header";
 
 const formatarTelefone = (valor: string) => {
   let apenasNumeros = valor.replace(/\D/g, "").slice(0, 11);
@@ -28,11 +29,9 @@ export default function PerfilPage() {
   const [nomeRecado, setNomeRecado] = useState("");
   const [telRecado, setTelRecado] = useState("");
 
-  // REMOVIDO: const supabase = createClient();
-
   useEffect(() => {
     async function carregarPerfil() {
-      const supabase = createClient(); // <-- ADICIONADO AQUI
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
@@ -56,7 +55,7 @@ export default function PerfilPage() {
     setSalvando(true);
     setMensagem(null);
 
-    const supabase = createClient(); // <-- ADICIONADO AQUI
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
@@ -77,85 +76,91 @@ export default function PerfilPage() {
         setMensagem("Erro ao salvar: " + error.message);
       } else {
         setMensagem("Dados atualizados com sucesso!");
+        // Recarrega a página para atualizar o nome no Header
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
     }
     setSalvando(false);
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-slate-500">Carregando seus dados...</div>;
+    return <div className="flex-1 w-full flex items-center justify-center bg-slate-900 min-h-screen text-slate-400">Carregando dados...</div>;
   }
 
   return (
-    <div className="flex-1 w-full flex flex-col items-center p-6 md:p-12 bg-slate-50/50 min-h-screen">
-      <div className="w-full max-w-2xl bg-white p-6 md:p-8 rounded-xl border shadow-sm">
+    <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-900 min-h-screen">
+      <div className="w-full max-w-4xl flex flex-col gap-6">
         
-        <div className="flex items-center justify-between mb-6 border-b pb-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => window.location.href = "/protected"} className="-ml-2">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <UserCircle className="w-6 h-6 text-blue-600" />
-            <h1 className="text-xl font-bold text-slate-800">Meu Perfil</h1>
-          </div>
-        </div>
+        {/* HEADER REUTILIZÁVEL */}
+        <Header />
 
-        {mensagem && (
-          <div className={`p-4 mb-6 text-sm rounded-md ${mensagem.includes("Erro") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
-            {mensagem}
-          </div>
-        )}
-
-        <form onSubmit={handleSalvar} className="flex flex-col gap-6">
+        {/* CARD DE PERFIL */}
+        <div className="bg-slate-800 p-6 md:p-8 rounded-xl border border-slate-700 shadow-sm">
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block text-slate-700">Nome Completo</label>
-              <Input required value={nome} onChange={(e) => setNome(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block text-slate-700">Unidade</label>
-              <Input required value={unidade} onChange={(e) => setUnidade(e.target.value)} />
-            </div>
+          <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
+            <UserCircle className="w-6 h-6 text-purple-400" />
+            <h1 className="text-2xl font-bold text-white">Meu Perfil</h1>
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-1 block text-slate-700">Seu WhatsApp</label>
-            <Input required value={telefone} onChange={(e) => setTelefone(formatarTelefone(e.target.value))} />
-          </div>
-
-          <div className="border-t pt-4">
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">Localização (Para Entregas)</h2>
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block text-slate-700">Ponto de Referência</label>
-                <Input value={pontoRef} onChange={(e) => setPontoRef(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block text-slate-700">Link do Google Maps</label>
-                <Input value={maps} onChange={(e) => setMaps(e.target.value)} />
-              </div>
+          {mensagem && (
+            <div className={`p-4 mb-6 text-sm rounded-md ${mensagem.includes("Erro") ? "bg-red-900/50 text-red-200 border border-red-700" : "bg-green-900/50 text-green-200 border border-green-700"}`}>
+              {mensagem}
             </div>
-          </div>
+          )}
 
-          <div className="border-t pt-4">
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">Contato de Recados</h2>
+          <form onSubmit={handleSalvar} className="flex flex-col gap-6">
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1 block text-slate-700">Nome do Contato</label>
-                <Input value={nomeRecado} onChange={(e) => setNomeRecado(e.target.value)} />
+                <label className="text-sm font-medium mb-1 block text-slate-300">Nome Completo</label>
+                <Input required value={nome} onChange={(e) => setNome(e.target.value)} className="bg-slate-700 border-slate-600 text-white" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block text-slate-700">Telefone de Recados</label>
-                <Input value={telRecado} onChange={(e) => setTelRecado(formatarTelefone(e.target.value))} />
+                <label className="text-sm font-medium mb-1 block text-slate-300">Unidade</label>
+                <Input required value={unidade} onChange={(e) => setUnidade(e.target.value)} className="bg-slate-700 border-slate-600 text-white" />
               </div>
             </div>
-          </div>
 
-          <Button type="submit" disabled={salvando} className="bg-blue-600 hover:bg-blue-700 h-11 mt-2">
-            {salvando ? "Salvando..." : <><Save className="w-4 h-4 mr-2" /> Salvar Alterações</>}
-          </Button>
-        </form>
+            <div>
+              <label className="text-sm font-medium mb-1 block text-slate-300">Seu WhatsApp</label>
+              <Input required value={telefone} onChange={(e) => setTelefone(formatarTelefone(e.target.value))} className="bg-slate-700 border-slate-600 text-white" />
+            </div>
+
+            <div className="border-t border-slate-700 pt-4">
+              <h2 className="text-sm font-semibold text-white mb-3">Localização (Para Entregas)</h2>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-slate-300">Ponto de Referência</label>
+                  <Input value={pontoRef} onChange={(e) => setPontoRef(e.target.value)} className="bg-slate-700 border-slate-600 text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-slate-300">Link do Google Maps</label>
+                  <Input value={maps} onChange={(e) => setMaps(e.target.value)} className="bg-slate-700 border-slate-600 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-700 pt-4">
+              <h2 className="text-sm font-semibold text-white mb-3">Contato de Recados</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-slate-300">Nome do Contato</label>
+                  <Input value={nomeRecado} onChange={(e) => setNomeRecado(e.target.value)} className="bg-slate-700 border-slate-600 text-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-slate-300">Telefone de Recados</label>
+                  <Input value={telRecado} onChange={(e) => setTelRecado(formatarTelefone(e.target.value))} className="bg-slate-700 border-slate-600 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <Button type="submit" disabled={salvando} className="bg-purple-600 hover:bg-purple-500 text-white h-11 mt-2">
+              {salvando ? "Salvando..." : <><Save className="w-4 h-4 mr-2" /> Salvar Alterações</>}
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   );

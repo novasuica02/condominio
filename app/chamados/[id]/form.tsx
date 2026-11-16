@@ -2,60 +2,156 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Save } from "lucide-react";
+import { Save, MessageSquarePlus, CheckCircle, Loader2, X, Plus } from "lucide-react";
 
 export default function GerenciarChamadoForm({ chamado, prestadores }: { chamado: any, prestadores: any[] }) {
-  const [status, setStatus] = useState(chamado.status);
+  const [aberto, setAberto] = useState(false);
+  const [status, setStatus] = useState(chamado.status || "aberto");
   const [sla, setSla] = useState(chamado.sla || "");
-  const [prestadorId, setPrestadorId] = useState(chamado.prestador_id || "");
+  const [prestadorId, setPrestadorId] = useState(chamado.prestador_id ? String(chamado.prestador_id) : "");
+  const [novoComentario, setNovoComentario] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sucesso, setSucesso] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErro(null);
+    setSucesso(false);
+
     const supabase = createClient();
 
-    await supabase.from("chamados").update({
+    const { error: updateError } = await supabase.from("chamados").update({
       status,
       sla: sla || null,
       prestador_id: prestadorId ? Number(prestadorId) : null,
     }).eq("id", chamado.id);
 
+    if (updateError) {
+      setErro("Erro ao atualizar: " + updateError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (novoComentario.trim() !== "") {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error: histError } = await supabase.from("chamados_historico").insert([{
+        chamado_id: chamado.id,
+        autor_id: user?.id,
+        texto: novoComentario
+      }]);
+
+      if (histError) {
+        setErro("Erro ao salvar histórico: " + histError.message);
+        setLoading(false);
+        return;
+      }
+    }
+
     setLoading(false);
-    window.location.href = "/chamados";
+    setSucesso(true);
+    
+    setTimeout(() => {
+      window.location.href = "/chamados";
+    }, 1500);
   };
 
+  if (!aberto) {
+    return (
+      <button 
+        onClick={() => setAberto(true)}
+        className="fixed bottom-6 right-6 z-40 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-5 py-3 rounded-full flex items-center justify-center transition-all shadow-lg hover:shadow-xl hover:scale-105"
+      >
+        <Plus className="w-5 h-5 mr-2" /> Adicionar Movimentação
+      </button>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div>
-        <label className="text-sm font-medium mb-1 block text-slate-700">Status</label>
-        <select className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="aberto">Aberto</option>
-          <option value="em_andamento">Em Andamento</option>
-          <option value="resolvido">Resolvido</option>
-        </select>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-slate-700">
+        
+        <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center">
+          <h2 className="text-lg font-bold text-white">Adicionar Movimentação</h2>
+          <button onClick={() => setAberto(false)} className="text-slate-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-      <div>
-        <label className="text-sm font-medium mb-1 block text-slate-700">SLA (Data Limite)</label>
-        <Input type="date" value={sla} onChange={(e) => setSla(e.target.value)} />
-      </div>
+        <div className="p-5 overflow-y-auto">
+          {erro && (
+            <div className="p-3 mb-4 bg-red-900/50 text-red-200 text-sm rounded-md border border-red-700">
+              {erro}
+            </div>
+          )}
 
-      <div>
-        <label className="text-sm font-medium mb-1 block text-slate-700">Prestador Responsável</label>
-        <select className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" value={prestadorId} onChange={(e) => setPrestadorId(e.target.value)}>
-          <option value="">Nenhum</option>
-          {prestadores.map((p) => (
-            <option key={p.id} value={p.id}>{p.nome} - {p.especialidade}</option>
-          ))}
-        </select>
-      </div>
+          <form id="form-chamado" onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block text-slate-300">Status</label>
+                <select className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700 text-white px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option value="aberto">Aberto</option>
+                  <option value="em_andamento">Em Andamento</option>
+                  <option value="resolvido">Resolvido</option>
+                </select>
+              </div>
 
-      <Button type="submit" disabled={loading} className="mt-4 bg-orange-600 hover:bg-orange-700">
-        {loading ? "Salvando..." : <><Save className="w-4 h-4 mr-2" /> Salvar Alterações</>}
-      </Button>
-    </form>
+              <div>
+                <label className="text-sm font-medium mb-1 block text-slate-300">SLA (Data Limite)</label>
+                <input 
+                  type="date" 
+                  className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700 text-white px-3 py-2 text-sm"
+                  value={sla} 
+                  onChange={(e) => setSla(e.target.value)} 
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-1 block text-slate-300">Prestador Responsável</label>
+              <select className="flex h-10 w-full rounded-md border border-slate-600 bg-slate-700 text-white px-3 py-2 text-sm" value={prestadorId} onChange={(e) => setPrestadorId(e.target.value)}>
+                <option value="">Nenhum</option>
+                {prestadores.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome} - {p.especialidade}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+              <label className="text-sm font-bold mb-2 flex items-center gap-2 text-slate-200">
+                <MessageSquarePlus className="w-4 h-4" /> Nova Anotação (Opcional)
+              </label>
+              <textarea 
+                className="flex min-h-[80px] w-full rounded-md border border-slate-600 bg-slate-700 text-white px-3 py-2 text-sm placeholder:text-slate-400" 
+                placeholder="Ex: Prestador agendou para amanhã às 14h..."
+                value={novoComentario}
+                onChange={(e) => setNovoComentario(e.target.value)}
+              />
+            </div>
+          </form>
+        </div>
+
+        <div className="p-4 border-t border-slate-700 bg-slate-900/50 flex justify-end">
+          <button 
+            type="submit" 
+            form="form-chamado"
+            disabled={loading || sucesso} 
+            className={`w-full h-11 rounded-md flex items-center justify-center font-bold text-base transition-colors ${
+              sucesso ? "bg-green-600 text-white" : "bg-blue-600 hover:bg-blue-500 text-white"
+            }`}
+          >
+            {loading ? (
+              <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Salvando...</>
+            ) : sucesso ? (
+              <><CheckCircle className="w-5 h-5 mr-2" /> Salvo com Sucesso!</>
+            ) : (
+              <><Save className="w-5 h-5 mr-2" /> Salvar Alterações</>
+            )}
+          </button>
+        </div>
+
+      </div>
+    </div>
   );
 }
