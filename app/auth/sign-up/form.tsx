@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Building2 } from "lucide-react";
+import Header from "@/components/Header";
 
 const formatarTelefone = (valor: string) => {
   let apenasNumeros = valor.replace(/\D/g, "").slice(0, 11);
@@ -28,15 +29,12 @@ export default function SignUpForm() {
   const [telRecado, setTelRecado] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  
-  // O createClient foi removido daqui de cima
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
 
-    // O createClient é criado aqui dentro, apenas quando o botão é clicado no navegador
     const supabase = createClient();
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -65,6 +63,7 @@ export default function SignUpForm() {
           ponto_referencia: pontoRef,
           nome_para_recados: nomeRecado,
           telefone_recados: telRecado,
+          email: email,
         })
         .eq("id", authData.user.id);
 
@@ -79,99 +78,111 @@ export default function SignUpForm() {
     
     setTimeout(() => {
       window.location.href = "/protected";
-    }, 1000);
+    }, 1500);
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full px-6 sm:max-w-xl mx-auto justify-center gap-2 mt-10 mb-10">
-      <div className="flex justify-center mb-4">
-        <div className="bg-blue-600 p-3 rounded-xl text-white">
-          <Building2 className="w-8 h-8" />
-        </div>
-      </div>
+    <div className="flex-1 w-full flex flex-col items-center bg-slate-900 min-h-screen">
       
-      <h1 className="text-2xl font-bold text-center text-slate-800 mb-6">Ficha do Morador</h1>
+      {/* HEADER NO TOPO */}
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-4 mb-6">
+        <Header showBackButton={false} />
+      </div>
 
-      {message && (
-        <div className={`p-4 text-sm rounded-md mb-4 ${message.includes("Erro") ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
-          {message}
+      <div className="w-full max-w-xl px-4 pb-12">
+        <div className="flex justify-center mb-4">
+          <div className="bg-blue-600 p-3 rounded-xl text-white">
+            <Building2 className="w-8 h-8" />
+          </div>
         </div>
-      )}
-
-      <form onSubmit={handleSignUp} className="flex flex-col gap-5">
         
-        <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">1. Seus Dados</h2>
-          
-          <div>
-            <label className="text-sm font-medium mb-1 block text-slate-700">Nome Completo</label>
-            <Input required placeholder="Seu nome" value={nome} onChange={(e) => setNome(e.target.value)} />
-          </div>
+        <h1 className="text-2xl font-bold text-center text-white mb-6">Ficha do Morador</h1>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block text-slate-700">Unidade</label>
-              <Input required placeholder="Casa 12 ou Ap 302" value={unidade} onChange={(e) => setUnidade(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block text-slate-700">Seu WhatsApp</label>
-              <Input required placeholder="(11) 99999-9999" value={telefone} onChange={(e) => setTelefone(formatarTelefone(e.target.value))} />
-            </div>
+        {message && (
+          <div className={`p-4 text-sm rounded-md mb-4 ${message.includes("Erro") ? "bg-red-900/50 text-red-200 border border-red-700" : "bg-green-900/50 text-green-200 border border-green-700"}`}>
+            {message}
           </div>
-        </div>
+        )}
 
-        <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">2. Localização (Para Entregas)</h2>
+        <form onSubmit={handleSignUp} className="flex flex-col gap-5">
           
-          <div>
-            <label className="text-sm font-medium mb-1 block text-slate-700">Ponto de Referência</label>
-            <Input placeholder="Ex: Portão azul, em frente à praça" value={pontoRef} onChange={(e) => setPontoRef(e.target.value)} />
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block text-slate-700">Link do Google Maps (Opcional)</label>
-            <Input placeholder="https://maps.app.goo.gl/..." value={maps} onChange={(e) => setMaps(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">3. Contato de Recados</h2>
-          <p className="text-xs text-slate-500 -mt-2">Caso não te encontremos, com quem falamos?</p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* BLOCO 1: DADOS DO MORADOR */}
+          <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-sm flex flex-col gap-4">
+            <h2 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">1. Seus Dados</h2>
+            
             <div>
-              <label className="text-sm font-medium mb-1 block text-slate-700">Nome do Contato</label>
-              <Input placeholder="Ex: Maria (Esposa)" value={nomeRecado} onChange={(e) => setNomeRecado(e.target.value)} />
+              <label className="text-sm font-medium mb-1 block text-slate-300">Nome Completo</label>
+              <Input required placeholder="Seu nome" value={nome} onChange={(e) => setNome(e.target.value)} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block text-slate-700">Telefone de Recados</label>
-              <Input placeholder="(11) 99999-9999" value={telRecado} onChange={(e) => setTelRecado(formatarTelefone(e.target.value))} />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block text-slate-300">Unidade</label>
+                <Input required placeholder="Casa 12 ou Ap 302" value={unidade} onChange={(e) => setUnidade(e.target.value)} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block text-slate-300">Seu WhatsApp</label>
+                <Input required placeholder="(11) 99999-9999" value={telefone} onChange={(e) => setTelefone(formatarTelefone(e.target.value))} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b pb-2">4. Dados de Acesso</h2>
-          
-          <div>
-            <label className="text-sm font-medium mb-1 block text-slate-700">E-mail</label>
-            <Input type="email" required placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          {/* BLOCO 2: LOCALIZAÇÃO */}
+          <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-sm flex flex-col gap-4">
+            <h2 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">2. Localização (Para Entregas)</h2>
+            
+            <div>
+              <label className="text-sm font-medium mb-1 block text-slate-300">Ponto de Referência</label>
+              <Input placeholder="Ex: Portão azul, em frente à praça" value={pontoRef} onChange={(e) => setPontoRef(e.target.value)} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block text-slate-300">Link do Google Maps (Opcional)</label>
+              <Input placeholder="https://maps.app.goo.gl/..." value={maps} onChange={(e) => setMaps(e.target.value)} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+            </div>
           </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block text-slate-700">Senha</label>
-            <Input type="password" required placeholder="Crie uma senha forte" value={password} onChange={(e) => setPassword(e.target.value)} />
+
+          {/* BLOCO 3: RECADOS */}
+          <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-sm flex flex-col gap-4">
+            <h2 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">3. Contato de Recados</h2>
+            <p className="text-xs text-slate-400 -mt-2">Caso não te encontremos, com quem falamos?</p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block text-slate-300">Nome do Contato</label>
+                <Input placeholder="Ex: Maria (Esposa)" value={nomeRecado} onChange={(e) => setNomeRecado(e.target.value)} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block text-slate-300">Telefone de Recados</label>
+                <Input placeholder="(11) 99999-9999" value={telRecado} onChange={(e) => setTelRecado(formatarTelefone(e.target.value))} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+              </div>
+            </div>
           </div>
+
+          {/* BLOCO 4: ACESSO */}
+          <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-sm flex flex-col gap-4">
+            <h2 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">4. Dados de Acesso</h2>
+            
+            <div>
+              <label className="text-sm font-medium mb-1 block text-slate-300">E-mail</label>
+              <Input type="email" required placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block text-slate-300">Senha</label>
+              <Input type="password" required placeholder="Crie uma senha forte" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400" />
+            </div>
+          </div>
+
+          <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-500 text-white h-12 text-lg mt-2">
+            {loading ? "Criando conta..." : "Finalizar Cadastro"}
+          </Button>
+        </form>
+
+        <div className="text-sm text-center text-slate-400 mt-4 pb-8">
+          Já tem uma conta?{" "}
+          <Link href="/auth/login" className="text-blue-400 hover:underline">
+            Fazer login
+          </Link>
         </div>
-
-        <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-12 text-lg">
-          {loading ? "Criando conta..." : "Finalizar Cadastro"}
-        </Button>
-      </form>
-
-      <div className="text-sm text-center text-slate-500 mt-4">
-        Já tem uma conta?{" "}
-        <Link href="/auth/login" className="text-blue-600 hover:underline">
-          Fazer login
-        </Link>
       </div>
     </div>
   );
