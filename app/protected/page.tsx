@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Building2, Megaphone, Wrench, FileText, LogOut, UserCircle, Users, Shield, HelpCircle } from "lucide-react";
+import { Megaphone, Wrench, FileText, UserCircle, Users, Shield } from "lucide-react";
+import Header from "@/components/Header";
 
 async function PainelContent() {
   const supabase = await createClient();
@@ -17,39 +17,18 @@ async function PainelContent() {
   const isSindico = profile?.role === "sindico";
   const isPrestador = profile?.role === "prestador";
 
-  // REDIRECIONAMENTO: Se for prestador, vai direto para a lista de chamados
+  // REDIRECIONAMENTO: Se for prestador, vai direto para os chamados
   if (isPrestador) {
     redirect("/chamados");
   }
 
   return (
     <div className="flex-1 w-full flex flex-col min-h-screen bg-slate-900">
-      <header className="bg-slate-800 border-b border-slate-700 w-full">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-blue-600 p-1.5 rounded-md text-white">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <span className="font-bold text-white text-base sm:text-lg">Nova Suíça 02</span>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="text-xs text-slate-400 hidden sm:block mr-2">{data.user.email}</span>
-            
-            <Link href="/ajuda">
-              <div className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-amber-300 hover:text-amber-200 border border-amber-400/50 px-3 py-1.5 rounded-md shadow-sm transition-all cursor-pointer">
-                <HelpCircle className="w-4 h-4" />
-                <span className="text-sm font-semibold hidden sm:inline">Ajuda</span>
-              </div>
-            </Link>
-
-            <form action="/auth/logout" method="post">
-              <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3 bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
-                <LogOut className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Sair</span>
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+      
+      {/* HEADER PADRONIZADO */}
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-4">
+        <Header showBackButton={false} />
+      </div>
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8">
         <div className="flex justify-between items-end mb-4 sm:mb-6">
