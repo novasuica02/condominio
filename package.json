@@ -24,6 +24,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^20.2.0",
+    "resend": "^6.38.1",
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {

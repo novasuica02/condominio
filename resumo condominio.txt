@@ -1,0 +1,257 @@
+ DOCUMENTAÇÃO COMPLETA - APP CONDOMÍNIO NOVA SUÍÇA 02
+Stack: Next.js 16 (App Router), React, TypeScript, Tailwind CSS, shadcn/ui, Supabase (Auth, Database, Storage), Vercel.
+Domínio: ns.sotoyotas.com.br
+
+🗄️ 1. ESTRUTURA DO BANCO DE DADOS (Tabelas e Colunas)
+Aqui estão as definições exatas de cada tabela no Supabase (schema public).
+
+1.1. profiles (Moradores, Síndicos e Prestadores)
+id (uuid, PK) - Referência a auth.users(id) com ON DELETE CASCADE.
+
+nome (text)
+
+unidade (text) - Ex: "Lote 12B", "Casa 5".
+
+role (text) - Valores aceitos: 'sindico', 'morador', 'prestador'. (Removida a constraint antiga que só aceitava morador/sindico).
+
+email (text)
+
+telefone (text)
+
+whatsapp (text)
+
+link_google_maps (text)
+
+ponto_referencia (text)
+
+nome_para_recados (text)
+
+telefone_recados (text)
+
+updated_at (timestamptz) - Padrão: timezone('utc'::text, now()).
+
+1.2. condominio_config (Configurações Globais)
+id (bigint, PK, Identity)
+
+nome (text) - Ex: "Nova Suíça 02".
+
+logo_url (text) - Link da imagem.
+
+endereco (text)
+
+cnpj (text)
+
+sindico_nome (text)
+
+sindico_telefone (text)
+
+created_at (timestamptz)
+
+1.3. avisos (Mural de Avisos)
+id (bigint, PK, Identity)
+
+titulo (text)
+
+corpo (text)
+
+autor_id (uuid) - Referência a profiles(id).
+
+arquivo_url (text) - Link do PDF/imagem no Storage.
+
+created_at (timestamptz)
+
+1.4. chamados (Ordens de Serviço)
+id (bigint, PK, Identity)
+
+autor_id (uuid) - Referência a profiles(id).
+
+tipo_servico_id (bigint) - Referência a tipos_servico(id).
+
+sub_servico_id (bigint) - Referência a sub_servicos(id).
+
+titulo (text) - (Antiga coluna assunto, foi renomeada).
+
+descricao (text)
+
+localizacao (text)
+
+status (text) - Padrão: 'aberto'. Valores: 'aberto', 'em_andamento', 'resolvido'.
+
+sla (date) - Data limite de resolução.
+
+prestador_id (bigint) - Referência a prestadores(id).
+
+created_at (timestamptz)
+
+1.5. chamados_historico (Movimentações dos Chamados)
+id (bigint, PK, Identity)
+
+chamado_id (bigint) - Referência a chamados(id) com ON DELETE CASCADE.
+
+autor_id (uuid) - Referência a profiles(id).
+
+texto (text) - A anotação.
+
+created_at (timestamptz)
+
+1.6. tipos_servico (Categorias de Chamado)
+id (bigint, PK, Identity)
+
+nome (text) - Ex: "Hidráulica", "Elétrica".
+
+prestador_id (bigint) - Referência a prestadores(id) (Prestador padrão da categoria).
+
+created_at (timestamptz)
+
+1.7. sub_servicos (Subcategorias)
+id (bigint, PK, Identity)
+
+tipo_servico_id (bigint) - Referência a tipos_servico(id) com ON DELETE CASCADE.
+
+nome (text) - Ex: "Vazamento", "Fiação".
+
+prestador_id (bigint) - Referência a prestadores(id) (Prestador padrão para este sub-serviço).
+
+created_at (timestamptz)
+
+1.8. prestadores (Empresas que atendem o condomínio)
+id (bigint, PK, Identity)
+
+nome (text)
+
+especialidade (text)
+
+cpf_cnpj (text)
+
+telefone (text)
+
+endereco (text)
+
+email (text) - Usado para vincular ao Auth.
+
+usuario_id (uuid) - Referência a auth.users(id). Liga o login ao prestador.
+
+created_at (timestamptz)
+
+1.9. profissionais_indicados (Indicações de confiança para moradores)
+id (bigint, PK, Identity)
+
+nome (text)
+
+especialidade (text)
+
+cpf_cnpj (text)
+
+telefone (text)
+
+endereco (text)
+
+observacao (text) - Ex: "Excelente profissional".
+
+created_at (timestamptz)
+
+1.10. documentos (Biblioteca de Arquivos)
+id (bigint, PK, Identity)
+
+titulo (text)
+
+categoria (text)
+
+arquivo_url (text)
+
+autor_id (uuid) - Referência a profiles(id).
+
+created_at (timestamptz)
+
+1.11. categorias_documentos (Tipos de Documentos)
+id (bigint, PK, Identity)
+
+nome (text) - Ex: "Ata", "Contrato".
+
+created_at (timestamptz)
+
+🛡️ 2. REGRAS DE SEGURANÇA (RLS) E FUNÇÕES
+2.1. Função de Verificação (Anti-Recursão)
+public.is_sindico(): Função SECURITY DEFINER que verifica se o usuário logado tem a role 'sindico'. Usada em todas as tabelas para evitar o erro de "infinite recursion detected".
+
+2.2. Políticas Principais (RLS)
+profiles: Todos logados podem ver todos os perfis. Usuário edita apenas o próprio. Síndico gerencia todos (via is_sindico()).
+
+chamados: Morador vê apenas os seus (autor_id). Prestador vê apenas os seus (prestador_id). Síndico vê todos. Morador/Síndico criam. Síndico/Prestador atualizam.
+
+chamados_historico: Todos logados podem ver. Qualquer um logado pode inserir.
+
+avisos: Todos veem. Apenas síndico cria/edita/deleta.
+
+prestadores: Todos veem. Apenas síndico gerencia.
+
+profissionais_indicados: Todos veem. Apenas síndico gerencia.
+
+condominio_config: Todos veem. Apenas síndico edita.
+
+documentos: Todos veem. Apenas síndico insere.
+
+Storage (Bucket documentos): Upload liberado para usuários autenticados. Leitura pública (para os links funcionarem).
+
+📁 3. ESTRUTURA DE PASTAS (app/)
+app/page.tsx: Página inicial (Home). Carrega o Header dinâmico e o Último Aviso.
+
+app/protected/page.tsx: Painel principal (Morador/Síndico). Se for prestador, redireciona para /chamados.
+
+app/avisos/: Mural de avisos (lista) e enviar/ (disparo simulado de WhatsApp).
+
+app/novo-aviso/: Formulário de criação de aviso.
+
+app/avisos/editar/[id]/: Edição de aviso.
+
+app/chamados/: Lista de chamados com filtros. novo/ (abertura), [id]/ (gerenciamento), tipos/ (configuração de tipos e sub-serviços).
+
+app/documentos/: Lista de documentos por categoria e novo/ (upload).
+
+app/moradores/: Lista de contatos (filtra apenas moradores e síndicos, esconde prestadores).
+
+app/prestadores/: Gestão de prestadores internos (vinculados aos chamados).
+
+app/profissionais/: Indicações de confiança (para moradores).
+
+app/perfil/: Edição dos dados do próprio usuário.
+
+app/admin/: Gestão de acessos (promover/rebaixar) e condominio/ (configurações de nome, logo, etc.).
+
+app/ajuda/: Manuais (Morador, Síndico e Prestador).
+
+components/Header.tsx: Componente de cabeçalho reutilizável (puxa logo/nome do banco).
+
+✅ 4. O QUE JÁ FOI FEITO E TESTADO
+Login/Cadastro com Supabase Auth (e-mail e senha).
+
+Header dinâmico com logo e nome do condomínio.
+
+Layout Dark Mode padronizado (mobile-first).
+
+Fluxo completo de Avisos (criar, editar, anexar).
+
+Fluxo completo de Chamados (abertura, SLA, histórico, roteamento automático para prestador).
+
+Prestadores logam e veem apenas seus chamados.
+
+Gestão de Acessos (promover/rebaixar) segura.
+
+Tela de Configurações do Condomínio.
+
+Manuais de Ajuda para todos os perfis.
+
+Deploy configurado na Vercel.
+
+🚀 5. PRÓXIMOS PASSOS (FUTURO)
+E-mail: Integração com Resend para disparos de abertura e movimentação de chamados.
+
+WhatsApp: Integração com API oficial (futuro).
+
+Reservas: Módulo para áreas comuns.
+
+PWA: Instalar como app no celular.
+
+Salve este documento! Com ele, você pode recomeçar em qualquer lugar e qualquer IA saberá exatamente como o sistema está estruturado. Bom descanso e parabéns pelo app! 🚀
+
+
