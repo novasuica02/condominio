@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
-  Megaphone, Wrench, UserCircle, FileText, Users, Shield, ChevronDown, ChevronUp, Settings, MessageCircle, AlertTriangle
+  Megaphone, Wrench, UserCircle, FileText, Users, Shield, ChevronDown, ChevronUp, Settings, AlertTriangle, ChevronRight
 } from "lucide-react";
 import Header from "@/components/Header";
 import Link from "next/link";
@@ -64,7 +64,8 @@ export default function ManualSindicoPage() {
       conteudo: (
         <ul className="list-disc pl-5 space-y-2 text-slate-300 text-sm">
           <li>Aqui você cadastra os profissionais de confiança para <strong>uso particular dos moradores</strong> (ex: pedreiro, eletricista, piscineiro).</li>
-          <li>Vá em "Precisa de um Serviço?" > "Gerenciar Serviços" e preencha os dados.</li>
+          {/* CORRIGIDO AQUI: Trocado o ">" por "→" */}
+          <li>Vá em "Precisa de um Serviço?" → "Gerenciar Serviços" e preencha os dados.</li>
         </ul>
       )
     },
@@ -88,6 +89,7 @@ export default function ManualSindicoPage() {
       conteudo: (
         <ul className="list-disc pl-5 space-y-2 text-slate-300 text-sm">
           <li>No menu "Gestão", você pode promover moradores a síndicos, gerenciar prestadores ou atualizar os dados do condomínio (nome, logo, endereço).</li>
+          {/* CORRIGIDO AQUI TAMBÉM, SE HOUVER OUTROS ">" */}
         </ul>
       )
     }
