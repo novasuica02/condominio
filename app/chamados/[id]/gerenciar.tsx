@@ -16,7 +16,9 @@ export async function GerenciarChamado({ params }: { params: Promise<{ id: strin
   if (!user) redirect("/auth/login");
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "sindico") redirect("/chamados");
+  const isSindico = profile?.role === "sindico" || profile?.role === "subsindico";
+  
+  if (!isSindico && profile?.role !== "prestador") redirect("/chamados");
 
   const { data: chamado, error } = await supabase
     .from("chamados")
@@ -51,9 +53,8 @@ export async function GerenciarChamado({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="w-full max-w-2xl flex flex-col gap-6 pb-24">
+    <div className="w-full max-w-2xl flex flex-col gap-6">
       
-      {/* CABEÇALHO */}
       <div className="flex items-center gap-2 border-b border-slate-700 pb-4">
         <Link href="/chamados">
           <Button variant="ghost" size="icon" className="-ml-2 text-slate-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Button>
@@ -61,7 +62,6 @@ export async function GerenciarChamado({ params }: { params: Promise<{ id: strin
         <h1 className="text-xl font-bold text-white">Gerenciar Chamado #{chamado.id}</h1>
       </div>
 
-      {/* DETALHES DO CHAMADO - FUNDO ESCURO */}
       <div className="bg-slate-800 p-6 rounded-xl shadow-xl text-white border border-slate-700">
         <div className="flex justify-between items-start mb-3">
           <h2 className="font-bold text-2xl text-white">{chamado.titulo}</h2>
@@ -110,7 +110,6 @@ export async function GerenciarChamado({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
-      {/* HISTÓRICO DE MOVIMENTAÇÕES */}
       <div className="bg-slate-700 p-6 rounded-xl border border-slate-600 shadow-lg">
         <h3 className="font-bold text-lg text-white flex items-center gap-2 mb-4 border-b border-slate-600 pb-2">
           <MessageSquare className="w-5 h-5 text-blue-400" /> Histórico de Movimentações
@@ -147,8 +146,9 @@ export async function GerenciarChamado({ params }: { params: Promise<{ id: strin
         )}
       </div>
 
-      {/* FORMULÁRIO / BOTÃO FLUTUANTE */}
-      <GerenciarChamadoForm chamado={chamado} prestadores={prestadores || []} />
+      <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-sm">
+        <GerenciarChamadoForm chamado={chamado} prestadores={prestadores || []} />
+      </div>
     </div>
   );
 }

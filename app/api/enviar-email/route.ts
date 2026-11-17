@@ -3,9 +3,18 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient } from "@/lib/supabase/server";
 
-type Evento = "abertura" | "atualizacao" | "troca_prestador";
+type Evento =
+  | "abertura"
+  | "atualizacao"
+  | "troca_prestador"
+  | "em_analise"
+  | "resolvido"
+  | "devolvido";
+
+type Destinatario = "sindico" | "subsindico" | "morador" | "prestador";
 
 const EMAIL_TESTE_PRESTADORES = "xiko57@gmail.com";
+
 const REMETENTE =
   "Nova Suíça 02 <nao-responda@mail.sostoyota.com.br>";
 
@@ -49,19 +58,33 @@ export async function POST(request: Request) {
       );
     }
 
+    const isAdmin =
+      perfilUsuario.role === "sindico" ||
+      perfilUsuario.role === "subsindico";
+
     // 3. Dados recebidos
     const body = await request.json();
 
     const chamadoId = body.chamadoId;
     const evento = body.evento as Evento;
     const comentario = String(body.comentario || "");
+
     const prestadorAnteriorId = body.prestadorAnteriorId
       ? Number(body.prestadorAnteriorId)
       : null;
 
+    const eventosPermitidos: Evento[] = [
+      "abertura",
+      "atualizacao",
+      "troca_prestador",
+      "em_analise",
+      "resolvido",
+      "devolvido",
+    ];
+
     if (
       !chamadoId ||
-      !["abertura", "atualizacao", "troca_prestador"].includes(evento)
+      !eventosPermitidos.includes(evento)
     ) {
       return NextResponse.json(
         { erro: "Dados do envio inválidos." },
@@ -92,7 +115,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Permissões
+    // 5. Validação das permissões por evento
+
     if (evento === "abertura" && chamado.autor_id !== user.id) {
       return NextResponse.json(
         { erro: "Você não pode notificar a abertura deste chamado." },
@@ -101,26 +125,114 @@ export async function POST(request: Request) {
     }
 
     if (
-      evento !== "abertura" &&
-      perfilUsuario.role !== "sindico"
+      ["atualizacao", "troca_prestador"].includes(evento) &&
+      !isAdmin
     ) {
       return NextResponse.json(
-        { erro: "Apenas síndicos podem enviar estas notificações." },
+        { erro: "Apenas síndicos ou subsíndicos podem realizar esta ação." },
         { status: 403 }
       );
     }
 
-    if (
-      evento === "troca_prestador" &&
-      !prestadorAnteriorId
-    ) {
+    if (evento === "troca_prestador") {
+      if (
+        !prestadorAnteriorId ||
+        !Number.isFinite(prestadorAnteriorId)
+      ) {
+        return NextResponse.json(
+          { erro: "Prestador anterior não informado." },
+          { status: 400 }
+        );
+      }
+
+      if (prestadorAnteriorId === chamado.prestador_id) {
+        return NextResponse.json(
+          { erro: "O prestador anterior e o atual são iguais." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (evento === "em_analise") {
+      if (chamado.status !== "em_analise" || !chamado.prestador_id) {
+        return NextResponse.json(
+          { erro: "O chamado não está aguardando análise." },
+          { status: 400 }
+        );
+      }
+
+      const { data: prestadorVinculado, error: vinculoError } =
+        await supabase
+          .from("prestadores")
+          .select("id")
+          .eq("id", chamado.prestador_id)
+          .eq("usuario_id", user.id)
+          .maybeSingle();
+
+      if (vinculoError || !prestadorVinculado) {
+        return NextResponse.json(
+          { erro: "Somente o prestador responsável pode registrar esta conclusão." },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (evento === "resolvido") {
+      if (
+        chamado.status !== "resolvido" ||
+        (chamado.autor_id !== user.id && !isAdmin)
+      ) {
+        return NextResponse.json(
+          { erro: "Você não tem permissão para notificar esta resolução." },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (evento === "devolvido") {
+      if (
+        chamado.status !== "em_andamento" ||
+        (chamado.autor_id !== user.id && !isAdmin)
+      ) {
+        return NextResponse.json(
+          { erro: "Você não tem permissão para devolver este chamado." },
+          { status: 403 }
+        );
+      }
+    }
+
+    // 6. Consulta as configurações de notificação
+    const { data: configuracoes, error: configError } = await supabase
+      .from("config_notificacoes")
+      .select("destinatario, ativo")
+      .eq("evento", evento);
+
+    if (configError) {
+      console.error("Erro ao consultar configurações:", configError);
+
       return NextResponse.json(
-        { erro: "Prestador anterior não informado." },
-        { status: 400 }
+        { erro: "Não foi possível consultar as configurações de notificações." },
+        { status: 500 }
       );
     }
 
-    // 6. Busca o morador que abriu o chamado
+    const destinatariosAtivos = new Set<Destinatario>(
+      (configuracoes || [])
+        .filter((config) => config.ativo)
+        .map((config) => config.destinatario as Destinatario)
+    );
+
+    // Se todos os destinatários estiverem desativados,
+    // a operação principal do chamado não será prejudicada.
+    if (destinatariosAtivos.size === 0) {
+      return NextResponse.json({
+        sucesso: true,
+        mensagem: "Notificações desativadas para este evento.",
+        quantidadeDestinatarios: 0,
+      });
+    }
+
+    // 7. Busca o morador
     const { data: morador, error: moradorError } = await supabase
       .from("profiles")
       .select("nome, email")
@@ -134,26 +246,45 @@ export async function POST(request: Request) {
       );
     }
 
-    // 7. Busca todos os síndicos
-    const { data: sindicos, error: sindicosError } = await supabase
-      .from("profiles")
-      .select("nome, email")
-      .eq("role", "sindico");
+    // 8. Busca síndicos e subsíndicos conforme configuração
+    let administradores: { nome: string | null; email: string | null }[] = [];
 
-    if (sindicosError) {
-      return NextResponse.json(
-        { erro: "Não foi possível localizar os síndicos." },
-        { status: 500 }
-      );
+    if (
+      destinatariosAtivos.has("sindico") ||
+      destinatariosAtivos.has("subsindico")
+    ) {
+      const roles = [];
+
+      if (destinatariosAtivos.has("sindico")) {
+        roles.push("sindico");
+      }
+
+      if (destinatariosAtivos.has("subsindico")) {
+        roles.push("subsindico");
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("nome, email")
+        .in("role", roles);
+
+      if (error) {
+        return NextResponse.json(
+          { erro: "Não foi possível localizar os administradores." },
+          { status: 500 }
+        );
+      }
+
+      administradores = data || [];
     }
 
-    // 8. Busca os prestadores envolvidos
+    // 9. Busca prestadores envolvidos
     async function buscarPrestador(id: number | null) {
       if (!id) return null;
 
       const { data, error } = await supabase
         .from("prestadores")
-        .select("id, nome")
+        .select("id, nome, usuario_id")
         .eq("id", id)
         .maybeSingle();
 
@@ -164,9 +295,7 @@ export async function POST(request: Request) {
       return data;
     }
 
-    const prestadorAtual = await buscarPrestador(
-      chamado.prestador_id
-    );
+    const prestadorAtual = await buscarPrestador(chamado.prestador_id);
 
     const prestadorAnterior =
       evento === "troca_prestador"
@@ -180,32 +309,54 @@ export async function POST(request: Request) {
       );
     }
 
-    // 9. Monta destinatários sem duplicidade
+    // 10. Monta destinatários respeitando as configurações
     const destinatarios = new Set<string>();
 
-    if (morador.email) {
+    if (destinatariosAtivos.has("morador") && morador.email) {
       destinatarios.add(morador.email.trim().toLowerCase());
     }
 
-    for (const sindico of sindicos || []) {
-      if (sindico.email) {
-        destinatarios.add(sindico.email.trim().toLowerCase());
+    for (const administrador of administradores) {
+      if (administrador.email) {
+        destinatarios.add(administrador.email.trim().toLowerCase());
       }
     }
 
-    // Prestadores usam o e-mail provisório durante os testes
-    if (prestadorAtual || prestadorAnterior) {
+    // E-mail provisório dos prestadores durante os testes
+    if (
+      destinatariosAtivos.has("prestador") &&
+      (prestadorAtual || prestadorAnterior)
+    ) {
       destinatarios.add(EMAIL_TESTE_PRESTADORES);
     }
 
     if (destinatarios.size === 0) {
-      return NextResponse.json(
-        { erro: "Nenhum destinatário válido foi encontrado." },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        sucesso: true,
+        mensagem: "Nenhum destinatário ativo com e-mail válido.",
+        quantidadeDestinatarios: 0,
+      });
     }
 
-    // 10. Identifica o assunto e o conteúdo
+    // 11. Assunto e conteúdo
+    const assuntos: Record<Evento, string> = {
+      abertura: `Novo chamado: ${chamado.titulo}`,
+      atualizacao: `Atualização de chamado: ${chamado.titulo}`,
+      troca_prestador: `Alteração de prestador: ${chamado.titulo}`,
+      em_analise: `Atendimento concluído: ${chamado.titulo}`,
+      resolvido: `Chamado resolvido: ${chamado.titulo}`,
+      devolvido: `Chamado devolvido para atendimento: ${chamado.titulo}`,
+    };
+
+    const mensagens: Record<Evento, string> = {
+      abertura: "Um novo chamado foi registrado no condomínio.",
+      atualizacao: "O chamado recebeu uma atualização.",
+      troca_prestador: "Houve uma alteração no prestador responsável pelo chamado.",
+      em_analise: "O prestador registrou a conclusão do atendimento. O chamado aguarda validação.",
+      resolvido: "O chamado foi confirmado como resolvido.",
+      devolvido: "O chamado foi devolvido para continuidade do atendimento.",
+    };
+
     const nomesPrestadores = [
       prestadorAnterior
         ? `Anterior: ${prestadorAnterior.nome}`
@@ -214,18 +365,6 @@ export async function POST(request: Request) {
         ? `Atual: ${prestadorAtual.nome}`
         : "",
     ].filter(Boolean);
-
-    const assuntos: Record<Evento, string> = {
-      abertura: `Novo chamado: ${chamado.titulo}`,
-      atualizacao: `Atualização de chamado: ${chamado.titulo}`,
-      troca_prestador: `Alteração de prestador: ${chamado.titulo}`,
-    };
-
-    const mensagens: Record<Evento, string> = {
-      abertura: "Um novo chamado foi registrado no condomínio.",
-      atualizacao: "O chamado recebeu uma atualização do síndico.",
-      troca_prestador: "Houve uma alteração no prestador responsável pelo chamado.",
-    };
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 650px; margin: auto;">
@@ -268,7 +407,7 @@ export async function POST(request: Request) {
       </div>
     `;
 
-    // 11. Envio pelo Resend
+    // 12. Envio pelo Resend
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {

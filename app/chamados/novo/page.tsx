@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
@@ -34,7 +33,6 @@ function normalizarTelefone(telefone: string) {
 
   return numero;
 }
-
 
 function criarLinkWhatsApp(telefone: string, mensagem: string) {
   const numero = normalizarTelefone(telefone);
@@ -118,121 +116,6 @@ export default function NovoChamadoPage() {
     );
   };
 
-  const prepararWhatsApp = async (
-    chamadoId: number,
-    moradorNome: string,
-    prestadorId: number | null
-  ) => {
-    const supabase = createClient();
-
-    const { data: sindicos, error: sindicosError } = await supabase
-      .from("profiles")
-      .select("id, nome, telefone, whatsapp")
-      .eq("role", "sindico");
-
-    if (sindicosError) {
-      throw new Error("Não foi possível consultar os síndicos.");
-    }
-
-    const contatos: {
-      id: string;
-      nome: string;
-      tipo: string;
-      telefone: string;
-    }[] = [];
-
-    // Adiciona os síndicos, exceto o usuário que abriu o chamado.
-    for (const sindico of sindicos || []) {
-      if (sindico.id === usuarioAtualId) continue;
-
-      const telefone = sindico.whatsapp || sindico.telefone;
-
-      if (telefone) {
-        contatos.push({
-          id: String(sindico.id),
-          nome: sindico.nome || "Síndico",
-          tipo: "Síndico",
-          telefone,
-        });
-      }
-    }
-
-    // Adiciona o prestador responsável, se houver.
-    if (prestadorId) {
-      const { data: prestador, error: prestadorError } =
-        await supabase
-          .from("prestadores")
-          .select("id, nome, telefone")
-          .eq("id", prestadorId)
-          .maybeSingle();
-
-      if (prestadorError) {
-        throw new Error("Não foi possível consultar o prestador.");
-      }
-
-      if (prestador?.telefone) {
-        contatos.push({
-          id: `prestador-${prestador.id}`,
-          nome: prestador.nome || "Prestador",
-          tipo: "Prestador",
-          telefone: prestador.telefone,
-        });
-      }
-    }
-
-  const mensagem = [
-  "CONDOMÍNIO NOVA SUÍÇA 02",
-  "",
-  "NOVO CHAMADO REGISTRADO",
-  "",
-  `Chamado: #${chamado.id}`,
-  `Título: ${titulo}`,
-  `Morador: ${perfil.nome || "Não informado"}`,
-  `Localização: ${localizacao || "Não informada"}`,
-  "",
-  `Descrição: ${descricao || "Não informada"}`,
-  "",
-  "Consulte o chamado e acompanhe seu andamento pelo aplicativo:",
-  "",
-  "https://ns.sotoyotas.com.br",
-  ].join("\n");
-
-    // Evita enviar duas mensagens para o mesmo número.
-    const numerosUtilizados = new Set<string>();
-
-    const lista: NotificacaoWhatsApp[] = [];
-
-    for (const contato of contatos) {
-      const numero = normalizarTelefone(contato.telefone);
-
-      if (!numero || numerosUtilizados.has(numero)) continue;
-
-      numerosUtilizados.add(numero);
-
-      const link = criarLinkWhatsApp(
-        contato.telefone,
-        mensagem
-      );
-
-      if (!link) continue;
-
-      lista.push({
-        ...contato,
-        link,
-      });
-    }
-
-    setNotificacoesWhatsApp(lista);
-
-    if (lista.length === 0) {
-      setAvisoWhatsApp(
-        "Nenhum telefone válido foi encontrado para notificação."
-      );
-    }
-  };
-
-  const [usuarioAtualId, setUsuarioAtualId] = useState("");
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -250,8 +133,6 @@ export default function NovoChamadoPage() {
         return;
       }
 
-      setUsuarioAtualId(user.id);
-
       // 1. Busca os dados do usuário que abriu o chamado.
       const { data: perfil, error: perfilError } = await supabase
         .from("profiles")
@@ -264,11 +145,12 @@ export default function NovoChamadoPage() {
         return;
       }
 
-      // 2. Grava o chamado e recupera seu ID.
+      // 2. Identifica o prestador do serviço selecionado.
       const prestadorId = subSelecionado?.prestador_id
         ? Number(subSelecionado.prestador_id)
         : null;
 
+      // 3. Grava o chamado e recupera seu ID.
       const { data: chamado, error } = await supabase
         .from("chamados")
         .insert([
@@ -280,6 +162,7 @@ export default function NovoChamadoPage() {
             tipo_servico_id: Number(tipoId),
             sub_servico_id: subId ? Number(subId) : null,
             prestador_id: prestadorId,
+            prestador_inicial_id: prestadorId,
             status: prestadorId ? "em_andamento" : "aberto",
           },
         ])
@@ -294,7 +177,7 @@ export default function NovoChamadoPage() {
 
       setNumeroChamado(chamado.id);
 
-      // 3. Envia os e-mails automaticamente.
+      // 4. Envia os e-mails automaticamente.
       try {
         const resposta = await fetch("/api/enviar-email", {
           method: "POST",
@@ -325,7 +208,7 @@ export default function NovoChamadoPage() {
         );
       }
 
-      // 4. Prepara os destinatários do WhatsApp.
+      // 5. Prepara os destinatários do WhatsApp.
       try {
         const { data: sindicos } = await supabase
           .from("profiles")
@@ -339,6 +222,7 @@ export default function NovoChamadoPage() {
           telefone: string;
         }[] = [];
 
+        // Adiciona os síndicos, exceto quem abriu o chamado.
         for (const sindico of sindicos || []) {
           if (sindico.id === user.id) continue;
 
@@ -354,6 +238,7 @@ export default function NovoChamadoPage() {
           }
         }
 
+        // Adiciona o prestador responsável, se houver.
         if (prestadorId) {
           const { data: prestador } = await supabase
             .from("prestadores")
@@ -386,7 +271,7 @@ export default function NovoChamadoPage() {
           "Consulte o aplicativo para acompanhar os detalhes.",
           "",
           "Consulte o chamado pelo aplicativo:",
-         "",
+          "",
           "https://ns.sotoyotas.com.br",
         ].join("\n");
 
@@ -428,7 +313,7 @@ export default function NovoChamadoPage() {
         );
       }
 
-      // 5. Mostra a tela de confirmação.
+      // 6. Mostra a tela de confirmação.
       setChamadoRegistrado(true);
     } catch (error) {
       console.error("Erro inesperado:", error);
@@ -469,7 +354,8 @@ export default function NovoChamadoPage() {
               </p>
             ) : (
               <p className="text-sm text-yellow-400">
-                {avisoEmail || "Não foi possível confirmar o envio dos e-mails."}
+                {avisoEmail ||
+                  "Não foi possível confirmar o envio dos e-mails."}
               </p>
             )}
           </div>
@@ -537,7 +423,6 @@ export default function NovoChamadoPage() {
   return (
     <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-900 min-h-screen">
       <div className="w-full max-w-2xl bg-slate-800 p-6 md:p-8 rounded-xl border border-slate-700 shadow-lg">
-
         <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
           <Link href="/chamados">
             <Button
@@ -555,7 +440,6 @@ export default function NovoChamadoPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
           <div>
             <label className="text-sm font-medium mb-1 block text-slate-300">
               Tipo de Serviço
@@ -668,7 +552,6 @@ export default function NovoChamadoPage() {
               </>
             )}
           </Button>
-
         </form>
       </div>
     </div>

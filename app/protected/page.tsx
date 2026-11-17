@@ -14,18 +14,15 @@ async function PainelContent() {
   }
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-  const isSindico = profile?.role === "sindico";
+  const isSindico = profile?.role === "sindico" || profile?.role === "subsindico";
   const isPrestador = profile?.role === "prestador";
 
-  // REDIRECIONAMENTO: Se for prestador, vai direto para os chamados
   if (isPrestador) {
     redirect("/chamados");
   }
 
   return (
     <div className="flex-1 w-full flex flex-col min-h-screen bg-slate-900">
-      
-      {/* HEADER PADRONIZADO */}
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-4">
         <Header showBackButton={false} />
       </div>
@@ -34,7 +31,7 @@ async function PainelContent() {
         <div className="flex justify-between items-end mb-4 sm:mb-6">
           <h1 className="text-xl sm:text-2xl font-bold text-white">Área do Morador</h1>
           {isSindico && (
-            <span className="text-[10px] sm:text-xs font-semibold bg-blue-900 text-blue-200 px-2 sm:px-3 py-1 rounded-full border border-blue-700">Síndico</span>
+            <span className="text-[10px] sm:text-xs font-semibold bg-blue-900 text-blue-200 px-2 sm:px-3 py-1 rounded-full border border-blue-700">Gestão</span>
           )}
         </div>
         

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Plus, FileText, Eye, LogOut, Building2 } from "lucide-react";
+import Header from "@/components/Header";
 
 async function ListaDocumentos() {
   const supabase = await createClient();
@@ -55,18 +56,17 @@ async function ListaDocumentos() {
   );
 }
 
-async function Header() {
+async function HeaderDocumentos() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) return null;
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  const isSindico = profile?.role === "sindico";
+  const isSindico = profile?.role === "sindico" || profile?.role === "subsindico";
 
   return (
     <div className="flex flex-col gap-4">
-      {/* BARRA SUPERIOR PADRÃO COM SAIR */}
       <div className="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
         <div className="flex items-center gap-3">
           <Link href="/protected">
@@ -87,7 +87,6 @@ async function Header() {
         </form>
       </div>
 
-      {/* TÍTULO E BOTÃO DE ENVIAR */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-sm">
         <h1 className="text-3xl font-bold text-white flex items-center gap-2">
           <FileText className="w-8 h-8 text-emerald-500" /> Documentos
@@ -110,7 +109,7 @@ export default function DocumentosPage() {
     <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-900 min-h-screen">
       <div className="w-full max-w-4xl flex flex-col gap-6">
         <Suspense fallback={<div className="h-24 animate-pulse bg-slate-800 rounded-xl"></div>}>
-          <Header />
+          <HeaderDocumentos />
         </Suspense>
 
         <Suspense fallback={<div className="animate-pulse text-slate-400 p-8 text-center">Carregando documentos...</div>}>

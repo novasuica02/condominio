@@ -37,7 +37,7 @@ export default function ChamadosPage() {
         .eq("id", user.id)
         .single();
       
-      const sindicoLogado = profile?.role === "sindico";
+      const sindicoLogado = profile?.role === "sindico" || profile?.role === "subsindico";
       const prestadorLogado = profile?.role === "prestador";
       
       setIsSindico(sindicoLogado);
@@ -87,10 +87,8 @@ export default function ChamadosPage() {
     <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-900 min-h-screen">
       <div className="w-full max-w-4xl flex flex-col gap-4">
         
-        {/* HEADER REUTILIZÁVEL */}
         <Header showBackButton={!isPrestador} backText="Menu" />
 
-        {/* TÍTULO, FILTROS E AÇÕES */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-xl sm:text-2xl font-bold text-white">
             {isPrestador ? `Chamados do ${primeiroNome}` : "Chamados"}
@@ -128,7 +126,6 @@ export default function ChamadosPage() {
 
         {erro && <div className="text-red-400 p-4 bg-red-900/20 border border-red-900 rounded-lg">Erro: {erro}</div>}
 
-        {/* LISTA */}
         {chamadosFiltrados.length === 0 ? (
           <div className="text-center p-12 bg-slate-800 rounded-xl border border-slate-700 text-slate-400">
             <Wrench className="w-12 h-12 mx-auto mb-4 text-slate-600" />

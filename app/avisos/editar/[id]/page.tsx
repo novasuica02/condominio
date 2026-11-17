@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import EditarAvisoForm from "./form";
 
-// 1. Componente que recebe a Promise e a resolve AQUI DENTRO
 async function CarregarAviso({ paramsPromise }: { paramsPromise: Promise<{ id: string }> }) {
-  const { id } = await paramsPromise; // O Next.js 16 exige o await AQUI
+  const { id } = await paramsPromise;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,23 +20,22 @@ async function CarregarAviso({ paramsPromise }: { paramsPromise: Promise<{ id: s
   if (!aviso) return <div className="text-red-500">Aviso não encontrado.</div>;
 
   return (
-    <div className="w-full max-w-2xl bg-white p-6 md:p-8 rounded-xl border shadow-sm">
-      <div className="flex items-center gap-2 mb-6 border-b pb-4">
+    <div className="w-full max-w-2xl bg-slate-800 p-6 md:p-8 rounded-xl border border-slate-700 shadow-sm">
+      <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
         <Link href="/avisos">
-          <Button variant="ghost" size="icon" className="-ml-2"><ArrowLeft className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" className="-ml-2 text-slate-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Button>
         </Link>
-        <h1 className="text-xl font-bold text-slate-800">Editar Aviso</h1>
+        <h1 className="text-xl font-bold text-white">Editar Aviso</h1>
       </div>
       <EditarAvisoForm aviso={aviso} />
     </div>
   );
 }
 
-// 2. A página APENAS repassa a Promise para o componente acima
 export default function EditarAvisoPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <div className="flex-1 w-full flex flex-col items-center p-6 md:p-12 bg-slate-50/50 min-h-screen">
-      <Suspense fallback={<div className="text-center p-12 text-slate-500">Carregando aviso...</div>}>
+    <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-900 min-h-screen">
+      <Suspense fallback={<div className="text-center p-12 text-slate-400">Carregando aviso...</div>}>
         <CarregarAviso paramsPromise={params} />
       </Suspense>
     </div>
