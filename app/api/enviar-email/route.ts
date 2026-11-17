@@ -1,28 +1,28 @@
+
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient } from "@/lib/supabase/server";
 
 type Evento = "abertura" | "atualizacao" | "troca_prestador";
 
-function escaparHtml(valor: unknown): string {
-  return String(valor ?? "").replace(/[&<>"']/g, (char) => {
-    const entidades: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
+const EMAIL_TESTE_PRESTADORES = "xiko57@gmail.com";
+const REMETENTE =
+  "Nova Suíça 02 <nao-responda@mail.sostoyota.com.br>";
 
-    return entidades[char];
-  });
+function escaparHtml(valor: string) {
+  return valor
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
 
-    // Confirma quem está fazendo a solicitação
+    // 1. Autenticação
     const {
       data: { user },
       error: authError,
@@ -35,38 +35,53 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-
-    const chamadoId = body.chamadoId;
-    const evento = body.evento as Evento;
-    const comentario = String(body.comentario ?? "");
-    const prestadorAnteriorId = body.prestadorAnteriorId;
-
-    if (!chamadoId || !["abertura", "atualizacao", "troca_prestador"].includes(evento)) {
-      return NextResponse.json(
-        { erro: "Dados inválidos." },
-        { status: 400 }
-      );
-    }
-
-    // Busca o perfil de quem está solicitando
+    // 2. Perfil do usuário
     const { data: perfilUsuario, error: perfilError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("id, nome, email, role")
       .eq("id", user.id)
       .single();
 
     if (perfilError || !perfilUsuario) {
       return NextResponse.json(
         { erro: "Perfil do usuário não encontrado." },
-        { status: 403 }
+        { status: 400 }
       );
     }
 
-    // Busca o chamado atualizado
+    // 3. Dados recebidos
+    const body = await request.json();
+
+    const chamadoId = body.chamadoId;
+    const evento = body.evento as Evento;
+    const comentario = String(body.comentario || "");
+    const prestadorAnteriorId = body.prestadorAnteriorId
+      ? Number(body.prestadorAnteriorId)
+      : null;
+
+    if (
+      !chamadoId ||
+      !["abertura", "atualizacao", "troca_prestador"].includes(evento)
+    ) {
+      return NextResponse.json(
+        { erro: "Dados do envio inválidos." },
+        { status: 400 }
+      );
+    }
+
+    // 4. Busca o chamado
     const { data: chamado, error: chamadoError } = await supabase
       .from("chamados")
-      .select("*")
+      .select(`
+        id,
+        autor_id,
+        titulo,
+        descricao,
+        localizacao,
+        status,
+        sla,
+        prestador_id
+      `)
       .eq("id", chamadoId)
       .single();
 
@@ -77,108 +92,183 @@ export async function POST(request: Request) {
       );
     }
 
-    // Valida as permissões conforme o evento
+    // 5. Permissões
     if (evento === "abertura" && chamado.autor_id !== user.id) {
       return NextResponse.json(
-        { erro: "Você não pode enviar aviso de abertura deste chamado." },
+        { erro: "Você não pode notificar a abertura deste chamado." },
         { status: 403 }
       );
     }
 
     if (
-      (evento === "atualizacao" || evento === "troca_prestador") &&
+      evento !== "abertura" &&
       perfilUsuario.role !== "sindico"
     ) {
       return NextResponse.json(
-        { erro: "Somente o síndico pode enviar este aviso." },
+        { erro: "Apenas síndicos podem enviar estas notificações." },
         { status: 403 }
       );
     }
 
     if (
       evento === "troca_prestador" &&
-      (!prestadorAnteriorId ||
-        String(prestadorAnteriorId) === String(chamado.prestador_id))
+      !prestadorAnteriorId
     ) {
       return NextResponse.json(
-        { erro: "Dados da troca de prestador inválidos." },
+        { erro: "Prestador anterior não informado." },
         { status: 400 }
       );
     }
 
-    // Busca os dados do morador que abriu o chamado
-    const { data: morador } = await supabase
+    // 6. Busca o morador que abriu o chamado
+    const { data: morador, error: moradorError } = await supabase
       .from("profiles")
-      .select("nome, unidade, email")
+      .select("nome, email")
       .eq("id", chamado.autor_id)
       .single();
 
-    // Busca todos os síndicos
-    const { data: sindicos } = await supabase
+    if (moradorError || !morador) {
+      return NextResponse.json(
+        { erro: "Não foi possível localizar o morador." },
+        { status: 400 }
+      );
+    }
+
+    // 7. Busca todos os síndicos
+    const { data: sindicos, error: sindicosError } = await supabase
       .from("profiles")
-      .select("email")
+      .select("nome, email")
       .eq("role", "sindico");
 
-    // Busca o prestador atualmente responsável
-    let prestadorAtual = null;
-
-    if (chamado.prestador_id) {
-      const { data } = await supabase
-        .from("prestadores")
-        .select("nome, email")
-        .eq("id", chamado.prestador_id)
-        .maybeSingle();
-
-      prestadorAtual = data;
+    if (sindicosError) {
+      return NextResponse.json(
+        { erro: "Não foi possível localizar os síndicos." },
+        { status: 500 }
+      );
     }
 
-    // Na troca, busca também o prestador anterior
-    let prestadorAnterior = null;
+    // 8. Busca os prestadores envolvidos
+    async function buscarPrestador(id: number | null) {
+      if (!id) return null;
 
-    if (evento === "troca_prestador") {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("prestadores")
-        .select("nome, email")
-        .eq("id", prestadorAnteriorId)
+        .select("id, nome")
+        .eq("id", id)
         .maybeSingle();
 
-      prestadorAnterior = data;
+      if (error) {
+        throw new Error("Erro ao consultar prestador: " + error.message);
+      }
+
+      return data;
     }
 
-    // Monta a lista de destinatários
+    const prestadorAtual = await buscarPrestador(
+      chamado.prestador_id
+    );
+
+    const prestadorAnterior =
+      evento === "troca_prestador"
+        ? await buscarPrestador(prestadorAnteriorId)
+        : null;
+
+    if (evento === "troca_prestador" && !prestadorAnterior) {
+      return NextResponse.json(
+        { erro: "O prestador anterior não foi encontrado." },
+        { status: 400 }
+      );
+    }
+
+    // 9. Monta destinatários sem duplicidade
     const destinatarios = new Set<string>();
 
-    const adicionarEmail = (email?: string | null) => {
-      const valor = email?.trim().toLowerCase();
-
-      if (valor && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)) {
-        destinatarios.add(valor);
-      }
-    };
-
-    adicionarEmail(morador?.email);
-
-    sindicos?.forEach((sindico) => adicionarEmail(sindico.email));
-
-    if (evento === "troca_prestador") {
-      adicionarEmail(prestadorAnterior?.email);
-      adicionarEmail(prestadorAtual?.email);
-    } else {
-      adicionarEmail(prestadorAtual?.email);
+    if (morador.email) {
+      destinatarios.add(morador.email.trim().toLowerCase());
     }
 
-    // Se o autor estiver abrindo o chamado, usa também o e-mail da sessão
-    if (evento === "abertura") {
-      adicionarEmail(user.email);
+    for (const sindico of sindicos || []) {
+      if (sindico.email) {
+        destinatarios.add(sindico.email.trim().toLowerCase());
+      }
+    }
+
+    // Prestadores usam o e-mail provisório durante os testes
+    if (prestadorAtual || prestadorAnterior) {
+      destinatarios.add(EMAIL_TESTE_PRESTADORES);
     }
 
     if (destinatarios.size === 0) {
       return NextResponse.json(
-        { erro: "Nenhum destinatário com e-mail válido foi encontrado." },
+        { erro: "Nenhum destinatário válido foi encontrado." },
         { status: 400 }
       );
     }
 
+    // 10. Identifica o assunto e o conteúdo
+    const nomesPrestadores = [
+      prestadorAnterior
+        ? `Anterior: ${prestadorAnterior.nome}`
+        : "",
+      prestadorAtual
+        ? `Atual: ${prestadorAtual.nome}`
+        : "",
+    ].filter(Boolean);
+
+    const assuntos: Record<Evento, string> = {
+      abertura: `Novo chamado: ${chamado.titulo}`,
+      atualizacao: `Atualização de chamado: ${chamado.titulo}`,
+      troca_prestador: `Alteração de prestador: ${chamado.titulo}`,
+    };
+
+    const mensagens: Record<Evento, string> = {
+      abertura: "Um novo chamado foi registrado no condomínio.",
+      atualizacao: "O chamado recebeu uma atualização do síndico.",
+      troca_prestador: "Houve uma alteração no prestador responsável pelo chamado.",
+    };
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 650px; margin: auto;">
+        <h2 style="color: #1e40af;">Condomínio Nova Suíça 02</h2>
+
+        <p>${mensagens[evento]}</p>
+
+        <hr />
+
+        <h3>${escaparHtml(chamado.titulo || "")}</h3>
+
+        <p><strong>Descrição:</strong><br />
+        ${escaparHtml(chamado.descricao || "Não informada")}</p>
+
+        <p><strong>Localização:</strong><br />
+        ${escaparHtml(chamado.localizacao || "Não informada")}</p>
+
+        <p><strong>Status:</strong> ${escaparHtml(chamado.status || "")}</p>
+
+        <p><strong>Morador:</strong>
+        ${escaparHtml(morador.nome || "Não informado")}</p>
+
+        ${
+          nomesPrestadores.length
+            ? `<p><strong>Prestadores:</strong><br />${nomesPrestadores.map(escaparHtml).join("<br />")}</p>`
+            : ""
+        }
+
+        ${
+          comentario.trim()
+            ? `<hr /><p><strong>Nova anotação:</strong><br />${escaparHtml(comentario)}</p>`
+            : ""
+        }
+
+        <hr />
+
+        <p style="font-size: 12px; color: #666;">
+          Mensagem automática do sistema do Condomínio Nova Suíça 02.
+        </p>
+      </div>
+    `;
+
+    // 11. Envio pelo Resend
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
@@ -190,94 +280,46 @@ export async function POST(request: Request) {
 
     const resend = new Resend(apiKey);
 
-    const tituloEvento = {
-      abertura: "Novo chamado aberto",
-      atualizacao: "Atualização de chamado",
-      troca_prestador: "Alteração de prestador",
-    }[evento];
-
-    const assunto = `${tituloEvento} - ${chamado.titulo}`;
-
-    const descricaoTroca =
-      evento === "troca_prestador"
-        ? `
-          <p><strong>Prestador anterior:</strong>
-          ${escaparHtml(prestadorAnterior?.nome ?? "Não identificado")}</p>
-
-          <p><strong>Novo prestador:</strong>
-          ${escaparHtml(prestadorAtual?.nome ?? "Não definido")}</p>
-        `
-        : "";
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; color: #333;">
-        <h2>${escaparHtml(tituloEvento)}</h2>
-
-        <p><strong>Chamado:</strong> #${escaparHtml(chamado.id)}</p>
-
-        <p><strong>Título:</strong>
-        ${escaparHtml(chamado.titulo)}</p>
-
-        <p><strong>Morador:</strong>
-        ${escaparHtml(morador?.nome ?? "Não identificado")}</p>
-
-        <p><strong>Unidade:</strong>
-        ${escaparHtml(morador?.unidade ?? "Não informada")}</p>
-
-        <p><strong>Descrição:</strong><br/>
-        ${escaparHtml(chamado.descricao).replace(/\n/g, "<br/>")}</p>
-
-        <p><strong>Localização:</strong>
-        ${escaparHtml(chamado.localizacao ?? "Não informada")}</p>
-
-        <p><strong>Status:</strong>
-        ${escaparHtml(chamado.status)}</p>
-
-        <p><strong>Prestador responsável:</strong>
-        ${escaparHtml(prestadorAtual?.nome ?? "Não definido")}</p>
-
-        ${descricaoTroca}
-
-        ${
-          comentario.trim()
-            ? `<p><strong>Comentário:</strong><br/>
-               ${escaparHtml(comentario).replace(/\n/g, "<br/>")}</p>`
-            : ""
-        }
-
-        <hr/>
-        <p style="font-size: 12px; color: #777;">
-          Condomínio Nova Suíça 02
-        </p>
-      </div>
-    `;
-
     const { data, error } = await resend.emails.send({
-      from: "Nova Suíça 02 <nao-responda@mail.sostoyotas.com.br>",
+      from: REMETENTE,
       to: Array.from(destinatarios),
-      subject: assunto,
+      subject: assuntos[evento],
       html,
     });
 
     if (error) {
-      console.error("Erro Resend:", error);
+      console.error("Erro no envio pelo Resend:", error);
 
       return NextResponse.json(
-        { erro: "Não foi possível enviar os e-mails.", detalhe: error.message },
-        { status: 500 }
+        { erro: error.message },
+        { status: 502 }
       );
     }
 
+    console.log("Notificação enviada:", {
+      chamadoId,
+      evento,
+      destinatarios: Array.from(destinatarios),
+      emailId: data?.id,
+    });
+
     return NextResponse.json({
       sucesso: true,
-      destinatarios: destinatarios.size,
+      mensagem: "Notificações enviadas com sucesso.",
       id: data?.id,
+      quantidadeDestinatarios: destinatarios.size,
     });
+
   } catch (error) {
-    console.error("Erro na API de e-mail:", error);
+    console.error("Erro ao processar notificação:", error);
 
     return NextResponse.json(
-      { erro: "Erro interno ao processar o envio de e-mail." },
+      {
+        erro:
+          error instanceof Error
+            ? error.message
+            : "Falha inesperada no envio.",
+      },
       { status: 500 }
     );
   }
