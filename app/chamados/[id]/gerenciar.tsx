@@ -1,22 +1,32 @@
-
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
-  MapPin,
   Clock,
   MessageSquare,
   User,
   Tag,
   AlertCircle,
-  Calendar,
-  Wrench,
+  Paperclip,
+  FileText,
+  Download,
 } from "lucide-react";
 import GerenciarChamadoForm from "./form";
+import EditarDadosChamado from "./editar-dados-chamado";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+type Anexo = {
+  id: number;
+  chamado_id: number;
+  historico_id: number | null;
+  nome_arquivo: string;
+  caminho_arquivo: string;
+  origem: string;
+  url?: string;
+};
 
 export async function GerenciarChamado({
   params,
@@ -24,8 +34,8 @@ export async function GerenciarChamado({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -42,32 +52,17 @@ export async function GerenciarChamado({
     profile?.role === "sindico" ||
     profile?.role === "subsindico";
 
-  if (!isSindico && profile?.role !== "prestador") {
-    redirect("/chamados");
-  }
-
   const { data: chamado, error } = await supabase
     .from("chamados")
     .select(`
       *,
-      autor:profiles(nome, unidade),
+      autor:profiles!chamados_autor_id_fkey(nome, unidade),
       tipos_servico(nome),
       sub_servicos(nome),
       prestadores:prestadores!chamados_prestador_id_fkey(nome)
     `)
     .eq("id", id)
     .single();
-
-  const { data: prestadores } = await supabase
-    .from("prestadores")
-    .select("*")
-    .order("nome");
-
-  const { data: historico } = await supabase
-    .from("chamados_historico")
-    .select(`*, profiles(nome)`)
-    .eq("chamado_id", id)
-    .order("created_at", { ascending: true });
 
   if (error || !chamado) {
     return (
@@ -76,7 +71,7 @@ export async function GerenciarChamado({
           Chamado não encontrado
         </h2>
         <p className="text-slate-400 text-sm mb-6">
-          O ID {id} não retornou nenhum resultado.
+          O ID {id} não retornou nenhum resultado ou você não tem acesso a ele.
         </p>
         <Link href="/chamados">
           <Button
@@ -90,6 +85,98 @@ export async function GerenciarChamado({
     );
   }
 
+  const isMorador =
+    profile?.role === "morador" && chamado.autor_id === user.id;
+
+  const isPrestador = profile?.role === "prestador";
+
+  if (!isSindico && !isMorador && !isPrestador) {
+    redirect("/chamados");
+  }
+
+  const { data: prestadores } = isSindico
+    ? await supabase.from("prestadores").select("*").order("nome")
+    : { data: [] };
+
+  const { data: historico } = await supabase
+    .from("chamados_historico")
+    .select("*, profiles(nome)")
+    .eq("chamado_id", id)
+    .order("created_at", { ascending: true });
+
+  const { data: anexosBanco } = await supabase
+    .from("chamados_anexos")
+    .select(
+      "id, chamado_id, historico_id, nome_arquivo, caminho_arquivo, origem"
+    )
+    .eq("chamado_id", id)
+    .order("created_at", { ascending: true });
+
+  const anexos: Anexo[] = [];
+
+  for (const anexo of anexosBanco || []) {
+    const { data: signedData } = await supabase.storage
+      .from("chamados")
+      .createSignedUrl(anexo.caminho_arquivo, 3600);
+
+    anexos.push({
+      ...anexo,
+      url: signedData?.signedUrl,
+    });
+  }
+
+  const anexosAbertura = anexos.filter(
+    (anexo) => anexo.origem === "abertura" || anexo.historico_id === null
+  );
+
+  const anexosDaMovimentacao = (historico || []).map(
+    (movimento: any) => ({
+      historicoId: movimento.id,
+      arquivos: anexos.filter(
+        (anexo) => anexo.historico_id === movimento.id
+      ),
+    })
+  );
+
+  const formatarData = (data: string) =>
+    format(new Date(data), "dd/MM/yyyy 'às' HH:mm", {
+      locale: ptBR,
+    });
+
+  const renderAnexos = (lista: Anexo[]) => {
+    if (lista.length === 0) return null;
+
+    return (
+      <div className="mt-3 flex flex-col gap-2">
+        {lista.map((anexo) => (
+          <div
+            key={anexo.id}
+            className="flex items-center justify-between gap-3 rounded-md border border-slate-600 bg-slate-900/60 p-3"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <FileText className="h-4 w-4 shrink-0 text-blue-400" />
+              <span className="truncate text-sm text-slate-200">
+                {anexo.nome_arquivo}
+              </span>
+            </div>
+
+            {anexo.url && (
+              <a
+                href={anexo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex shrink-0 items-center gap-1 text-sm text-blue-300 hover:text-blue-200"
+              >
+                <Download className="h-4 w-4" />
+                Abrir
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="w-full max-w-2xl flex flex-col gap-6">
       <div className="flex items-center gap-2 border-b border-slate-700 pb-4">
@@ -102,19 +189,28 @@ export async function GerenciarChamado({
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
+
         <h1 className="text-xl font-bold text-white">
-          Gerenciar Chamado #{chamado.id}
+          {isMorador ? "Acompanhar Chamado" : "Gerenciar Chamado"} #{chamado.id}
         </h1>
       </div>
 
       <div className="bg-slate-800 p-6 rounded-xl shadow-xl text-white border border-slate-700">
-        <div className="flex justify-between items-start mb-3">
-          <h2 className="font-bold text-2xl text-white">
+        <div className="flex flex-nowrap items-center gap-3 mb-4 min-w-0">
+          <h2 className="font-bold text-xl text-white truncate min-w-0 flex-1">
             {chamado.titulo}
           </h2>
 
+          <span className="flex items-center gap-1 text-xs text-slate-300 whitespace-nowrap shrink-0">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            Em:{" "}
+            {format(new Date(chamado.created_at), "dd/MM/yyyy", {
+              locale: ptBR,
+            })}
+          </span>
+
           <span
-            className={`text-xs px-3 py-1 rounded-full font-bold ${
+            className={`text-xs px-3 py-1 rounded-full font-bold whitespace-nowrap shrink-0 ${
               chamado.status === "aberto"
                 ? "bg-orange-500 text-white"
                 : chamado.status === "em_andamento"
@@ -124,7 +220,7 @@ export async function GerenciarChamado({
                     : "bg-green-500 text-white"
             }`}
           >
-            {chamado.status.replace("_", " ").toUpperCase()}
+            {chamado.status.replaceAll("_", " ").toUpperCase()}
           </span>
         </div>
 
@@ -144,42 +240,37 @@ export async function GerenciarChamado({
             {chamado.sub_servicos?.nome &&
               `- ${chamado.sub_servicos.nome}`}
           </span>
-
-          <span className="flex items-center gap-1.5 bg-slate-700 px-3 py-1.5 rounded-full text-slate-200">
-            <Clock className="w-4 h-4 text-amber-400" />
-            {format(
-              new Date(chamado.created_at),
-              "dd/MM/yyyy 'às' HH:mm",
-              { locale: ptBR }
-            )}
-          </span>
         </div>
 
         <p className="text-slate-200 whitespace-pre-wrap leading-relaxed mb-4">
           {chamado.descricao}
         </p>
 
-        <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-600">
+        {anexosAbertura.length > 0 && (
+          <div className="mb-4 border-t border-slate-600 pt-4">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-slate-200">
+              <Paperclip className="h-4 w-4 text-blue-400" />
+              Arquivos da abertura
+            </h3>
+            {renderAnexos(anexosAbertura)}
+          </div>
+        )}
+
+        <div className="mt-4 border-t border-slate-600 pt-4">
+          {isSindico || isMorador || isPrestador ? (
+            <EditarDadosChamado
+              chamadoId={chamado.id}
+              prestadorIdInicial={chamado.prestador_id ?? null}
+              prestadorNomeInicial={chamado.prestadores?.nome ?? null}
+              slaInicial={chamado.sla ?? null}
+              prestadores={prestadores || []}
+              role={profile?.role || ""}
+            />
+          ) : null}
+
           {chamado.localizacao && (
-            <div className="text-sm text-amber-200 flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700">
-              <MapPin className="w-4 h-4 text-amber-400" />
-              <strong>Local:</strong> {chamado.localizacao}
-            </div>
-          )}
-
-          {chamado.sla && (
-            <div className="text-sm text-amber-200 flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700">
-              <Calendar className="w-4 h-4 text-amber-400" />
-              <strong>SLA:</strong>{" "}
-              {format(new Date(chamado.sla), "dd/MM/yyyy")}
-            </div>
-          )}
-
-          {chamado.prestadores && (
-            <div className="text-sm text-amber-200 flex items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700">
-              <Wrench className="w-4 h-4 text-amber-400" />
-              <strong>Prestador:</strong>{" "}
-              {chamado.prestadores.nome}
+            <div className="mt-3 inline-flex text-sm text-amber-200 items-center gap-2 bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700">
+              <span className="font-bold">Local:</span> {chamado.localizacao}
             </div>
           )}
         </div>
@@ -198,35 +289,41 @@ export async function GerenciarChamado({
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            {historico.map((h: any) => (
-              <div key={h.id} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 bg-blue-500/20 text-blue-300 rounded-full flex items-center justify-center shrink-0 border border-blue-500/30">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div className="w-px h-full bg-slate-600 my-1"></div>
-                </div>
+            {historico.map((h: any) => {
+              const anexosMovimento =
+                anexosDaMovimentacao.find(
+                  (item) => item.historicoId === h.id
+                )?.arquivos || [];
 
-                <div className="pb-4 w-full">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-sm text-white">
-                      {h.profiles?.nome || "Sistema"}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {format(
-                        new Date(h.created_at),
-                        "dd/MM/yyyy 'às' HH:mm",
-                        { locale: ptBR }
-                      )}
-                    </span>
+              return (
+                <div key={h.id} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-blue-500/20 text-blue-300 rounded-full flex items-center justify-center shrink-0 border border-blue-500/30">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div className="w-px h-full bg-slate-600 my-1" />
                   </div>
 
-                  <div className="bg-slate-800 border border-slate-600 p-3 rounded-md text-sm text-slate-200 whitespace-pre-wrap shadow-sm">
-                    {h.texto}
+                  <div className="pb-4 w-full min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="font-bold text-sm text-white">
+                        {h.profiles?.nome || "Sistema"}
+                      </span>
+
+                      <span className="text-xs text-slate-400">
+                        {formatarData(h.created_at)}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-800 border border-slate-600 p-3 rounded-md text-sm text-slate-200 whitespace-pre-wrap shadow-sm">
+                      {h.texto}
+                    </div>
+
+                    {renderAnexos(anexosMovimento)}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -234,7 +331,7 @@ export async function GerenciarChamado({
       <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-sm">
         <GerenciarChamadoForm
           chamado={chamado}
-          prestadores={prestadores || []}
+          role={profile?.role || ""}
         />
       </div>
     </div>

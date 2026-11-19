@@ -221,93 +221,90 @@ export default function ChamadosPage() {
                   : null;
 
               return (
-                <Card
+                <Link
                   key={c.id}
-                  className="bg-slate-800 border-slate-700 shadow-sm"
+                  href={`/chamados/${c.id}`}
+                  className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
-                  <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                    <div>
-                      <CardTitle className="text-base text-white flex items-center gap-2">
-                        {c.titulo}
+                  <Card className="bg-slate-800 border-slate-700 shadow-sm transition-colors hover:border-blue-500 hover:bg-slate-800/80 cursor-pointer">
+                    <CardHeader className="pb-2 flex flex-row items-start justify-between">
+                      <div>
+                        <CardTitle className="text-base text-white flex items-center gap-2">
+                          {c.titulo}
 
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                            c.status === "aberto"
-                              ? "bg-orange-500 text-white"
-                              : c.status === "em_andamento"
-                                ? "bg-blue-500 text-white"
-                                : c.status === "em_analise"
-                                  ? "bg-amber-500 text-white"
-                                  : "bg-green-500 text-white"
-                          }`}
-                        >
-                          {c.status.replace("_", " ").toUpperCase()}
-                        </span>
-                      </CardTitle>
-
-                      <CardDescription className="mt-0.5 text-xs text-slate-400">
-                        {c.tipos_servico?.nome}{" "}
-                        {c.sub_servicos?.nome &&
-                          ` - ${c.sub_servicos.nome}`}{" "}
-                        •{" "}
-                        {format(
-                          new Date(c.created_at),
-                          "dd/MM/yyyy",
-                          { locale: ptBR }
-                        )}
-                      </CardDescription>
-                    </div>
-
-                    {(isSindico || isPrestador) && (
-                      <Link href={`/chamados/${c.id}`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white h-8 text-xs"
-                        >
-                          Atualizar
-                        </Button>
-                      </Link>
-                    )}
-                  </CardHeader>
-
-                  <CardContent>
-                    <p className="text-slate-300 text-sm whitespace-pre-wrap">
-                      {c.descricao}
-                    </p>
-
-                    {ultimoComentario && (
-                      <div className="mt-2 bg-slate-900/50 border border-slate-700 rounded-md p-2">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <MessageSquare className="w-3 h-3 text-blue-400" />
-                          <span className="text-[10px] font-bold text-blue-400">
-                            Último Acompanhamento
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              c.status === "aberto"
+                                ? "bg-orange-500 text-white"
+                                : c.status === "em_andamento"
+                                  ? "bg-blue-500 text-white"
+                                  : c.status === "em_analise"
+                                    ? "bg-amber-500 text-white"
+                                    : "bg-green-500 text-white"
+                            }`}
+                          >
+                            {c.status.replace("_", " ").toUpperCase()}
                           </span>
-                        </div>
+                        </CardTitle>
 
-                        <p className="text-xs text-slate-300 whitespace-pre-wrap leading-tight">
-                          {ultimoComentario.texto}
-                        </p>
+                        <CardDescription className="mt-0.5 text-xs text-slate-400">
+                          {c.tipos_servico?.nome}{" "}
+                          {c.sub_servicos?.nome &&
+                            ` - ${c.sub_servicos.nome}`}{" "}
+                          •{" "}
+                          {format(
+                            new Date(c.created_at),
+                            "dd/MM/yyyy",
+                            { locale: ptBR }
+                          )}
+                        </CardDescription>
                       </div>
-                    )}
 
-                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-400 bg-slate-900/50 p-2 rounded-md border border-slate-700">
-                      {c.localizacao && (
-                        <span className="flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-slate-500" />
-                          {c.localizacao}
+                      {(isSindico || isPrestador) && (
+                        <span className="text-blue-400 text-xs font-medium">
+                          Atualizar →
                         </span>
                       )}
+                    </CardHeader>
 
-                      {c.sla && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-slate-500" />
-                          SLA: {format(new Date(c.sla), "dd/MM/yyyy")}
-                        </span>
+                    <CardContent>
+                      <p className="text-slate-300 text-sm whitespace-pre-wrap">
+                        {c.descricao}
+                      </p>
+
+                      {ultimoComentario && (
+                        <div className="mt-2 bg-slate-900/50 border border-slate-700 rounded-md p-2">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <MessageSquare className="w-3 h-3 text-blue-400" />
+                            <span className="text-[10px] font-bold text-blue-400">
+                              Último Acompanhamento
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-slate-300 whitespace-pre-wrap leading-tight">
+                            {ultimoComentario.texto}
+                          </p>
+                        </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+
+                      <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-400 bg-slate-900/50 p-2 rounded-md border border-slate-700">
+                        {c.localizacao && (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-slate-500" />
+                            {c.localizacao}
+                          </span>
+                        )}
+
+                        {c.sla && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-500" />
+                            SLA: {format(new Date(c.sla), "dd/MM/yyyy")}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>

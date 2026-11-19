@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent, type ChangeEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,9 @@ import {
   MessageCircle,
   CheckCircle,
   Mail,
+  Paperclip,
+  X,
+  FileText,
 } from "lucide-react";
 
 type NotificacaoWhatsApp = {
@@ -21,6 +25,46 @@ type NotificacaoWhatsApp = {
   telefone: string;
   link: string;
 };
+
+const MAX_ARQUIVOS = 5;
+const MAX_TAMANHO = 10 * 1024 * 1024;
+
+const TIPOS_PERMITIDOS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "docx",
+};
+
+function arquivoPermitido(file: File) {
+  const extensao = file.name.split(".").pop()?.toLowerCase();
+
+  return (
+    Object.prototype.hasOwnProperty.call(TIPOS_PERMITIDOS, file.type) ||
+    ["jpg", "jpeg", "png", "pdf", "doc", "docx"].includes(extensao || "")
+  );
+}
+
+function obterTipoMime(file: File) {
+  if (file.type && Object.prototype.hasOwnProperty.call(TIPOS_PERMITIDOS, file.type)) {
+    return file.type;
+  }
+
+  const extensao = file.name.split(".").pop()?.toLowerCase();
+
+  const tiposPorExtensao: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+
+  return tiposPorExtensao[extensao || ""] || "application/octet-stream";
+}
 
 function normalizarTelefone(telefone: string) {
   let numero = telefone.replace(/\D/g, "");
@@ -44,6 +88,17 @@ function criarLinkWhatsApp(telefone: string, mensagem: string) {
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
 }
 
+function formatarTamanho(bytes: number) {
+  return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+function nomeSeguro(nome: string) {
+  return nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
 export default function NovoChamadoPage() {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -52,6 +107,9 @@ export default function NovoChamadoPage() {
   const [subId, setSubId] = useState("");
   const [tipos, setTipos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [arquivos, setArquivos] = useState<File[]>([]);
+  const [avisoAnexos, setAvisoAnexos] = useState("");
 
   const [chamadoRegistrado, setChamadoRegistrado] = useState(false);
   const [numeroChamado, setNumeroChamado] = useState<number | null>(null);
@@ -94,6 +152,45 @@ export default function NovoChamadoPage() {
     (s: any) => s.id.toString() === subId
   );
 
+  const handleSelecionarArquivos = (
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const selecionados = Array.from(e.target.files || []);
+
+    if (arquivos.length + selecionados.length > MAX_ARQUIVOS) {
+      alert(`Você pode anexar no máximo ${MAX_ARQUIVOS} arquivos.`);
+      e.target.value = "";
+      return;
+    }
+
+    for (const arquivo of selecionados) {
+      if (!arquivoPermitido(arquivo)) {
+        alert(
+          `O arquivo "${arquivo.name}" possui um formato não permitido.`
+        );
+        e.target.value = "";
+        return;
+      }
+
+      if (arquivo.size > MAX_TAMANHO) {
+        alert(
+          `O arquivo "${arquivo.name}" ultrapassa o limite de 10 MB.`
+        );
+        e.target.value = "";
+        return;
+      }
+    }
+
+    setArquivos((atuais) => [...atuais, ...selecionados]);
+    e.target.value = "";
+  };
+
+  const removerArquivo = (indice: number) => {
+    setArquivos((atuais) =>
+      atuais.filter((_, i) => i !== indice)
+    );
+  };
+
   const handlePegarLocalizacao = () => {
     if (!navigator.geolocation) {
       alert("Seu navegador não suporta geolocalização.");
@@ -116,9 +213,93 @@ export default function NovoChamadoPage() {
     );
   };
 
+  const enviarAnexos = async (
+    supabase: ReturnType<typeof createClient>,
+    chamadoId: number,
+    usuarioId: string
+  ) => {
+    if (arquivos.length === 0) return true;
+
+    const caminhosEnviados: string[] = [];
+
+    try {
+      const registros = [];
+
+      for (const arquivo of arquivos) {
+        const caminho =
+          `${chamadoId}/${crypto.randomUUID()}-${nomeSeguro(arquivo.name)}`;
+
+        const tipoMime = obterTipoMime(arquivo);
+
+        const { error: uploadError } = await supabase.storage
+          .from("chamados")
+          .upload(caminho, arquivo, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: tipoMime,
+          });
+
+        if (uploadError) {
+          throw new Error(
+            `Erro ao enviar "${arquivo.name}": ${uploadError.message}`
+          );
+        }
+
+        caminhosEnviados.push(caminho);
+
+        registros.push({
+          chamado_id: chamadoId,
+          autor_id: usuarioId,
+          nome_arquivo: arquivo.name,
+          caminho_arquivo: caminho,
+          tipo_mime: tipoMime,
+          tamanho: arquivo.size,
+          origem: "abertura",
+        });
+      }
+
+      const { error: registroError } = await supabase
+        .from("chamados_anexos")
+        .insert(registros);
+
+      if (registroError) {
+        throw new Error(
+          `Os arquivos foram enviados, mas não foi possível registrar os anexos: ${registroError.message}`
+        );
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Erro ao enviar anexos:", error);
+
+      // Remove os arquivos enviados caso algum envio ou registro falhe.
+      if (caminhosEnviados.length > 0) {
+        const { error: removeError } = await supabase.storage
+          .from("chamados")
+          .remove(caminhosEnviados);
+
+        if (removeError) {
+          console.error(
+            "Não foi possível remover todos os arquivos enviados:",
+            removeError
+          );
+        }
+      }
+
+      setAvisoAnexos(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar os anexos."
+      );
+
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+    setAvisoAnexos("");
 
     try {
       const supabase = createClient();
@@ -177,7 +358,10 @@ export default function NovoChamadoPage() {
 
       setNumeroChamado(chamado.id);
 
-      // 4. Envia os e-mails automaticamente.
+      // 4. Envia os anexos antes das notificações.
+      await enviarAnexos(supabase, chamado.id, user.id);
+
+      // 5. Envia os e-mails automaticamente.
       try {
         const resposta = await fetch("/api/enviar-email", {
           method: "POST",
@@ -208,7 +392,7 @@ export default function NovoChamadoPage() {
         );
       }
 
-      // 5. Prepara os destinatários do WhatsApp.
+      // 6. Prepara os destinatários do WhatsApp.
       try {
         const { data: sindicos } = await supabase
           .from("profiles")
@@ -313,7 +497,7 @@ export default function NovoChamadoPage() {
         );
       }
 
-      // 6. Mostra a tela de confirmação.
+      // 7. Mostra a tela de confirmação.
       setChamadoRegistrado(true);
     } catch (error) {
       console.error("Erro inesperado:", error);
@@ -341,6 +525,31 @@ export default function NovoChamadoPage() {
               </p>
             </div>
           </div>
+
+          {avisoAnexos && (
+            <div className="rounded-lg bg-yellow-900/40 border border-yellow-700 p-4 mb-6">
+              <div className="flex items-center gap-2 text-yellow-300 mb-2">
+                <Paperclip className="w-5 h-5" />
+                <strong>Problema com os anexos</strong>
+              </div>
+
+              <p className="text-sm text-yellow-200">
+                O chamado foi registrado, mas os anexos não foram salvos.
+                {avisoAnexos}
+              </p>
+            </div>
+          )}
+
+          {!avisoAnexos && arquivos.length > 0 && (
+            <div className="rounded-lg bg-slate-700 p-4 mb-6">
+              <div className="flex items-center gap-2 text-white">
+                <Paperclip className="w-5 h-5 text-green-400" />
+                <strong>
+                  {arquivos.length} anexo(s) enviado(s) com sucesso!
+                </strong>
+              </div>
+            </div>
+          )}
 
           <div className="rounded-lg bg-slate-700 p-4 mb-6">
             <div className="flex items-center gap-2 text-white mb-2">
@@ -536,6 +745,74 @@ export default function NovoChamadoPage() {
                 <MapPin className="w-5 h-5" />
               </button>
             </div>
+          </div>
+
+          {/* Anexos */}
+          <div className="border border-slate-600 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Paperclip className="w-5 h-5 text-orange-400" />
+
+              <label className="text-sm font-medium text-slate-300">
+                Anexar arquivos (Opcional)
+              </label>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-3">
+              Até 5 arquivos, com no máximo 10 MB cada.
+              Formatos aceitos: JPG, PNG, PDF, DOC e DOCX.
+            </p>
+
+            <label className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-500 bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-3 cursor-pointer">
+              <Paperclip className="w-4 h-4" />
+              Selecionar arquivos
+
+              <input
+                type="file"
+                multiple
+                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleSelecionarArquivos}
+                disabled={arquivos.length >= MAX_ARQUIVOS}
+                className="hidden"
+              />
+            </label>
+
+            {arquivos.length > 0 && (
+              <div className="mt-4 flex flex-col gap-2">
+                {arquivos.map((arquivo, indice) => (
+                  <div
+                    key={`${arquivo.name}-${indice}`}
+                    className="flex items-center justify-between gap-3 bg-slate-700 rounded-md p-3"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-5 h-5 text-slate-300 shrink-0" />
+
+                      <div className="min-w-0">
+                        <p className="text-sm text-white truncate">
+                          {arquivo.name}
+                        </p>
+
+                        <p className="text-xs text-slate-400">
+                          {formatarTamanho(arquivo.size)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removerArquivo(indice)}
+                      className="text-red-400 hover:text-red-300 p-1"
+                      title="Remover arquivo"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+
+                <p className="text-xs text-slate-400">
+                  {arquivos.length} de {MAX_ARQUIVOS} arquivos selecionados.
+                </p>
+              </div>
+            )}
           </div>
 
           <Button
