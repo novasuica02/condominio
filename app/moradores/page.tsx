@@ -33,7 +33,7 @@ export default function MoradoresPage() {
       const { data } = await supabase
         .from("profiles")
         .select("*")
-        .in("role", ["morador", "sindico"]) 
+        .in("role", ["morador", "sindico", "subsindico"]) 
         .order("nome", { ascending: true });
       
       if (data) setMoradores(data);
