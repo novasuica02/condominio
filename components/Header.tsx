@@ -26,33 +26,38 @@ export default function Header({
     async function carregarDados() {
       const supabase = createClient();
 
-      // Pega o usuário logado
+      // Identifica o usuário logado
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("nome, email, role")
-          .eq("id", user.id)
-          .single();
+      if (!user) return;
 
-        setNomeUsuario(
-          profile?.nome || profile?.email || user.email || "Usuário"
-        );
-
-        setRole(profile?.role || "");
-      }
-
-      // Pega as configurações do condomínio
-      const { data: cfg } = await supabase
-        .from("condominio_config")
-        .select("*")
-        .limit(1)
+      // Busca o perfil e o condomínio do usuário
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nome, email, role, condominio_id")
+        .eq("id", user.id)
         .single();
 
-      if (cfg) setConfig(cfg);
+      if (profile) {
+        setNomeUsuario(
+          profile.nome || profile.email || user.email || "Usuário"
+        );
+
+        setRole(profile.role || "");
+
+        // Busca somente a configuração do condomínio do usuário
+        const { data: cfg } = await supabase
+          .from("condominio_config")
+          .select("*")
+          .eq("condominio_id", profile.condominio_id)
+          .maybeSingle();
+
+        if (cfg) {
+          setConfig(cfg);
+        }
+      }
     }
 
     carregarDados();

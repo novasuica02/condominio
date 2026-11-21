@@ -1,11 +1,15 @@
 
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
+  let usuarioId: string | null = null;
+  let token: string | null = null;
+
   try {
-    // 1. Verificar usuário autenticado
+    // 1. Verificar usuário autenticado.
     const supabase = await createClient();
 
     const {
@@ -20,17 +24,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Verificar permissão de síndico ou subsíndico
+    // 2. Buscar perfil e condomínio do administrador.
     const { data: perfil, error: perfilError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, condominio_id")
       .eq("id", user.id)
       .single();
 
     if (
       perfilError ||
       !perfil ||
-      !["sindico", "subsindico"].includes(perfil.role)
+      !["sindico", "subsindico"].includes(perfil.role) ||
+      !perfil.condominio_id
     ) {
       return NextResponse.json(
         { error: "Você não tem permissão para cadastrar responsáveis." },
@@ -38,7 +43,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Receber e validar os dados
+    const condominioId = perfil.condominio_id;
+
+    // 3. Receber e validar os dados.
     const body = await request.json();
 
     const {
@@ -46,6 +53,7 @@ export async function POST(request: Request) {
       especialidade,
       cpf_cnpj,
       telefone,
+      whatsapp,
       endereco,
       email,
       senha,
@@ -53,114 +61,167 @@ export async function POST(request: Request) {
     } = body;
 
     if (
-      !nome?.trim() ||
-      !email?.trim() ||
-      !senha ||
+      typeof nome !== "string" ||
+      !nome.trim() ||
+      typeof email !== "string" ||
+      !email.trim() ||
+      typeof senha !== "string" ||
+      senha.length < 6 ||
       !categoria_id
     ) {
       return NextResponse.json(
-        { error: "Preencha nome, e-mail, senha e categoria." },
+        { error: "Preencha nome, e-mail, senha e categoria corretamente." },
         { status: 400 }
       );
     }
 
-    if (senha.length < 6) {
+    if (
+      telefone != null &&
+      typeof telefone !== "string"
+    ) {
       return NextResponse.json(
-        { error: "A senha deve ter pelo menos 6 caracteres." },
+        { error: "Telefone inválido." },
         { status: 400 }
       );
     }
 
-    // 4. Conferir se a categoria existe e está ativa
+    if (
+      whatsapp != null &&
+      typeof whatsapp !== "string"
+    ) {
+      return NextResponse.json(
+        { error: "WhatsApp inválido." },
+        { status: 400 }
+      );
+    }
+
+    const emailNormalizado = email.trim().toLowerCase();
+    const categoriaId = Number(categoria_id);
+
+    if (!Number.isInteger(categoriaId) || categoriaId <= 0) {
+      return NextResponse.json(
+        { error: "Categoria inválida." },
+        { status: 400 }
+      );
+    }
+
+    // 4. Conferir se a categoria pertence ao condomínio
+    // do administrador e está ativa.
     const { data: categoria, error: categoriaError } =
       await supabaseAdmin
         .from("categorias_responsaveis")
         .select("id")
-        .eq("id", categoria_id)
+        .eq("id", categoriaId)
+        .eq("condominio_id", condominioId)
         .eq("ativo", true)
-        .single();
+        .maybeSingle();
 
     if (categoriaError || !categoria) {
       return NextResponse.json(
-        { error: "Categoria inválida ou inativa." },
+        { error: "Categoria inválida ou inativa neste condomínio." },
         { status: 400 }
       );
     }
 
-    // 5. Criar usuário no Supabase Auth
+    // 5. Criar autorização temporária exclusiva
+    // para este e-mail e condomínio.
+    token = randomUUID();
+
+    const { error: autorizacaoError } = await supabaseAdmin
+      .from("cadastro_autorizacoes_prestadores")
+      .insert({
+        token,
+        condominio_id: condominioId,
+        email: emailNormalizado,
+        criado_por: user.id,
+        expira_em: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      });
+
+    if (autorizacaoError) {
+      throw autorizacaoError;
+    }
+
+    // 6. Criar usuário no Supabase Auth.
+    // O gatilho handle_new_user() consumirá a autorização
+    // e criará o perfil como prestador.
     const { data: authData, error: createUserError } =
       await supabaseAdmin.auth.admin.createUser({
-        email: email.trim().toLowerCase(),
+        email: emailNormalizado,
         password: senha,
         email_confirm: true,
         user_metadata: {
           nome: nome.trim(),
-          unidade: "Prestador",
+          telefone: telefone?.trim() || null,
+          cadastro_prestador_token: token,
         },
       });
 
     if (createUserError || !authData.user) {
-      return NextResponse.json(
-        {
-          error:
-            createUserError?.message ||
-            "Não foi possível criar o usuário.",
-        },
-        { status: 400 }
+      throw new Error(
+        createUserError?.message ||
+          "Não foi possível criar o usuário."
       );
     }
 
-    const usuarioId = authData.user.id;
+    usuarioId = authData.user.id;
 
-    try {
-      // 6. Atualizar perfil criado automaticamente pelo trigger
-      const { error: updateProfileError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          nome: nome.trim(),
-          unidade: "Prestador",
-          role: "prestador",
-          email: email.trim().toLowerCase(),
-          telefone: telefone?.trim() || null,
-        })
-        .eq("id", usuarioId);
-
-      if (updateProfileError) {
-        throw updateProfileError;
-      }
-
-      // 7. Criar cadastro do responsável
-      const { error: insertError } = await supabaseAdmin
-        .from("prestadores")
-        .insert({
-          nome: nome.trim(),
-          especialidade: especialidade?.trim() || null,
-          cpf_cnpj: cpf_cnpj?.trim() || null,
-          telefone: telefone?.trim() || null,
-          endereco: endereco?.trim() || null,
-          email: email.trim().toLowerCase(),
-          usuario_id: usuarioId,
-          categoria_id: Number(categoria_id),
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: "Responsável cadastrado com sucesso!",
+    // 7. Criar cadastro do responsável no condomínio correto.
+    // Telefone e WhatsApp são armazenados separadamente.
+    const { error: insertError } = await supabaseAdmin
+      .from("prestadores")
+      .insert({
+        nome: nome.trim(),
+        especialidade: especialidade?.trim() || null,
+        cpf_cnpj: cpf_cnpj?.trim() || null,
+        telefone: telefone?.trim() || null,
+        whatsapp: whatsapp?.trim() || null,
+        endereco: endereco?.trim() || null,
+        email: emailNormalizado,
+        usuario_id: usuarioId,
+        categoria_id: categoriaId,
+        condominio_id: condominioId,
       });
-    } catch (error: any) {
-      // 8. Se falhar o cadastro, excluir o usuário recém-criado
-      await supabaseAdmin.auth.admin.deleteUser(usuarioId);
-      throw error;
+
+    if (insertError) {
+      throw insertError;
     }
-  } catch (error: any) {
+
+    return NextResponse.json({
+      success: true,
+      message: "Responsável cadastrado com sucesso!",
+    });
+
+  } catch (error: unknown) {
     console.error("Erro ao cadastrar responsável:", error);
 
+    // Se o usuário chegou a ser criado, remove seu acesso.
+    if (usuarioId) {
+      const { error: deleteError } =
+        await supabaseAdmin.auth.admin.deleteUser(usuarioId);
+
+      if (deleteError) {
+        console.error(
+          "Erro ao excluir usuário após falha:",
+          deleteError
+        );
+      }
+    }
+
+    // Remove autorização caso ainda não tenha sido consumida.
+    if (token) {
+      await supabaseAdmin
+        .from("cadastro_autorizacoes_prestadores")
+        .delete()
+        .eq("token", token);
+    }
+
+    const mensagem =
+      error instanceof Error
+        ? error.message
+        : "Erro interno ao cadastrar responsável.";
+
     return NextResponse.json(
-      { error: error.message || "Erro interno ao cadastrar responsável." },
+      { error: mensagem },
       { status: 500 }
     );
   }

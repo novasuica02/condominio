@@ -1,12 +1,11 @@
 
-import { updateSession } from "@/lib/supabase/proxy";
+import { updateSession } from "@/lib/supabase/update-session";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  // Se as variáveis não existirem, não quebra o site. Apenas segue.
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   ) {
     console.warn("Variáveis do Supabase ausentes no proxy. Pulando verificação.");
     return NextResponse.next({ request });
