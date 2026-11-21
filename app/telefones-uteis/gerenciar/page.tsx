@@ -31,23 +31,27 @@ async function ConteudoGerenciarTelefones() {
     redirect("/auth/login");
   }
 
+  // Busca o papel e o condomínio do usuário.
   const { data: perfil, error: erroPerfil } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, condominio_id")
     .eq("id", user.id)
     .single();
 
   if (
     erroPerfil ||
     !perfil ||
-    !["sindico", "subsindico"].includes(perfil.role)
+    !["sindico", "subsindico"].includes(perfil.role) ||
+    !perfil.condominio_id
   ) {
     redirect("/protected");
   }
 
+  // Busca somente os contatos do condomínio do usuário.
   const { data: contatos, error } = await supabase
     .from("telefones_uteis")
     .select("*")
+    .eq("condominio_id", perfil.condominio_id)
     .order("ordem", { ascending: true })
     .order("nome", { ascending: true });
 
@@ -86,6 +90,7 @@ async function ConteudoGerenciarTelefones() {
         ) : (
           <GerenciarTelefonesClient
             contatosIniciais={contatos || []}
+            condominioId={perfil.condominio_id}
           />
         )}
       </div>

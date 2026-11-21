@@ -18,6 +18,7 @@ import {
 
 type TelefoneUtil = {
   id: number;
+  condominio_id: number;
   nome: string;
   categoria: string;
   telefone: string;
@@ -58,10 +59,23 @@ const formularioVazio: Formulario = {
   ativo: true,
 };
 
+const CATEGORIAS_PADRAO = [
+  "Condomínio",
+  "Emergência",
+  "Saúde",
+  "Serviços públicos",
+  "Serviços locais",
+  "Outros",
+];
+
+const OPCAO_NOVA_CATEGORIA = "__NOVA_CATEGORIA__";
+
 export default function GerenciarTelefonesClient({
   contatosIniciais,
+  condominioId,
 }: {
   contatosIniciais: TelefoneUtil[];
+  condominioId: number;
 }) {
   const supabase = createClient();
 
@@ -77,6 +91,14 @@ export default function GerenciarTelefonesClient({
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
+  const [criandoCategoria, setCriandoCategoria] = useState(false);
+
+  const categorias = Array.from(
+    new Set([
+      ...CATEGORIAS_PADRAO,
+      ...contatos.map((c) => c.categoria?.trim()).filter(Boolean),
+    ])
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   function abrirNovo() {
     setFormulario({
@@ -84,12 +106,21 @@ export default function GerenciarTelefonesClient({
       ordem: contatos.length + 1,
     });
     setEditandoId(null);
+    setCriandoCategoria(false);
     setMensagem("");
     setErro("");
     setFormAberto(true);
   }
 
   function abrirEdicao(contato: TelefoneUtil) {
+    const categoriaExiste = [
+      ...CATEGORIAS_PADRAO,
+      ...contatos.map((c) => c.categoria),
+    ].some(
+      (categoria) =>
+        categoria?.toLowerCase() === contato.categoria?.toLowerCase()
+    );
+
     setFormulario({
       nome: contato.nome,
       categoria: contato.categoria,
@@ -103,6 +134,7 @@ export default function GerenciarTelefonesClient({
       ativo: contato.ativo,
     });
 
+    setCriandoCategoria(!categoriaExiste);
     setEditandoId(contato.id);
     setMensagem("");
     setErro("");
@@ -115,6 +147,7 @@ export default function GerenciarTelefonesClient({
     setFormAberto(false);
     setEditandoId(null);
     setFormulario(formularioVazio);
+    setCriandoCategoria(false);
     setErro("");
   }
 
@@ -130,7 +163,7 @@ export default function GerenciarTelefonesClient({
     }
 
     if (!formulario.categoria.trim()) {
-      setErro("Informe a categoria.");
+      setErro("Selecione ou informe uma categoria.");
       return;
     }
 
@@ -163,6 +196,7 @@ export default function GerenciarTelefonesClient({
           .from("telefones_uteis")
           .update(dados)
           .eq("id", editandoId)
+          .eq("condominio_id", condominioId)
           .select()
           .single();
 
@@ -180,7 +214,10 @@ export default function GerenciarTelefonesClient({
       } else {
         const { data, error } = await supabase
           .from("telefones_uteis")
-          .insert(dados)
+          .insert({
+            ...dados,
+            condominio_id: condominioId,
+          })
           .select()
           .single();
 
@@ -218,7 +255,8 @@ export default function GerenciarTelefonesClient({
     const { error } = await supabase
       .from("telefones_uteis")
       .delete()
-      .eq("id", contato.id);
+      .eq("id", contato.id)
+      .eq("condominio_id", condominioId);
 
     if (error) {
       console.error("Erro ao excluir contato:", error);
@@ -245,7 +283,8 @@ export default function GerenciarTelefonesClient({
         ativo: novoStatus,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", contato.id);
+      .eq("id", contato.id)
+      .eq("condominio_id", condominioId);
 
     if (error) {
       console.error("Erro ao alterar status:", error);
@@ -275,7 +314,6 @@ export default function GerenciarTelefonesClient({
 
   return (
     <div className="space-y-6">
-
       {mensagem && (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300">
           {mensagem}
@@ -319,7 +357,6 @@ export default function GerenciarTelefonesClient({
           </div>
 
           <form onSubmit={salvarContato} className="space-y-5">
-
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-300">
                 Nome do contato *
@@ -345,35 +382,85 @@ export default function GerenciarTelefonesClient({
                 Categoria *
               </label>
 
-              <input
-                type="text"
-                list="categorias-telefones"
-                value={formulario.categoria}
-                onChange={(e) =>
-                  setFormulario({
-                    ...formulario,
-                    categoria: e.target.value,
-                  })
+              <select
+                value={
+                  criandoCategoria
+                    ? OPCAO_NOVA_CATEGORIA
+                    : formulario.categoria
                 }
-                placeholder="Ex.: Condomínio, Emergência, Serviços..."
-                required
-                className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
-              />
+                onChange={(e) => {
+                  const valor = e.target.value;
 
-              <datalist id="categorias-telefones">
-                {Array.from(
-                  new Set(contatos.map((c) => c.categoria))
-                ).map((categoria) => (
-                  <option key={categoria} value={categoria} />
+                  if (valor === OPCAO_NOVA_CATEGORIA) {
+                    setCriandoCategoria(true);
+                    setFormulario({
+                      ...formulario,
+                      categoria: "",
+                    });
+                  } else {
+                    setCriandoCategoria(false);
+                    setFormulario({
+                      ...formulario,
+                      categoria: valor,
+                    });
+                  }
+                }}
+                required={!criandoCategoria}
+                className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-500"
+              >
+                <option value="">Selecione uma categoria</option>
+
+                {categorias.map((categoria) => (
+                  <option key={categoria} value={categoria}>
+                    {categoria}
+                  </option>
                 ))}
 
-                <option value="Condomínio" />
-                <option value="Emergência" />
-                <option value="Saúde" />
-                <option value="Serviços públicos" />
-                <option value="Serviços locais" />
-                <option value="Outros" />
-              </datalist>
+                <option value={OPCAO_NOVA_CATEGORIA}>
+                  + Outra categoria...
+                </option>
+              </select>
+
+              {criandoCategoria && (
+                <div className="mt-3">
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Nome da nova categoria
+                  </label>
+
+                  <input
+                    type="text"
+                    autoFocus
+                    value={formulario.categoria}
+                    onChange={(e) =>
+                      setFormulario({
+                        ...formulario,
+                        categoria: e.target.value,
+                      })
+                    }
+                    placeholder="Digite o nome da categoria"
+                    required
+                    className="w-full rounded-lg border border-blue-500 bg-slate-900 px-4 py-3 text-white outline-none focus:border-blue-400"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCriandoCategoria(false);
+                      setFormulario({
+                        ...formulario,
+                        categoria: "",
+                      });
+                    }}
+                    className="mt-2 text-sm text-slate-400 underline hover:text-white"
+                  >
+                    Voltar para as categorias existentes
+                  </button>
+                </div>
+              )}
+
+              <p className="mt-2 text-xs text-slate-400">
+                Escolha uma categoria existente ou selecione Outra categoria para criar uma nova.
+              </p>
             </div>
 
             <div className="space-y-4 rounded-lg border border-slate-700 bg-slate-900 p-4">
@@ -598,7 +685,6 @@ export default function GerenciarTelefonesClient({
                 }`}
               >
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
                   <div className="min-w-0 flex-1">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-white">
