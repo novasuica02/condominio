@@ -49,6 +49,7 @@ type Pet = {
   nome: string;
   especie: string;
   raca: string | null;
+  cor: string | null;
   porte: string | null;
   sexo: string | null;
   data_nascimento: string | null;
@@ -73,12 +74,19 @@ type Veiculo = {
   foto_assinada?: string | null;
 };
 
+type ResultadoBusca = {
+  tipo: "pets" | "veiculos";
+  registro: Pet | Veiculo;
+  morador: Morador;
+};
+
 type TipoPopup = "pets" | "veiculos";
 
 type FormPet = {
   nome: string;
   especie: string;
   raca: string;
+  cor: string;
   porte: string;
   sexo: string;
   data_nascimento: string;
@@ -100,6 +108,7 @@ const petVazio: FormPet = {
   nome: "",
   especie: "",
   raca: "",
+  cor: "",
   porte: "",
   sexo: "",
   data_nascimento: "",
@@ -134,8 +143,10 @@ function normalizarWhatsApp(numero: string | null) {
 function caminhoFotoValido(caminho: string | null) {
   if (!caminho) return false;
 
-  return !caminho.startsWith("http://") &&
-    !caminho.startsWith("https://");
+  return (
+    !caminho.startsWith("http://") &&
+    !caminho.startsWith("https://")
+  );
 }
 
 function PopupUnidade({
@@ -279,6 +290,7 @@ function PopupUnidade({
       nome: pet.nome || "",
       especie: pet.especie || "",
       raca: pet.raca || "",
+      cor: pet.cor || "",
       porte: pet.porte || "",
       sexo: pet.sexo || "",
       data_nascimento: pet.data_nascimento || "",
@@ -348,11 +360,12 @@ function PopupUnidade({
         const erroArquivo = validarArquivo(arquivo);
         if (erroArquivo) throw new Error(erroArquivo);
 
-        const extensao = arquivo.type === "image/png"
-          ? "png"
-          : arquivo.type === "image/webp"
-            ? "webp"
-            : "jpg";
+        const extensao =
+          arquivo.type === "image/png"
+            ? "png"
+            : arquivo.type === "image/webp"
+              ? "webp"
+              : "jpg";
 
         caminhoNovo =
           `${morador.condominio_id}/${morador.unidade_id}/pets/` +
@@ -376,6 +389,7 @@ function PopupUnidade({
         nome: formPet.nome.trim(),
         especie: formPet.especie.trim(),
         raca: formPet.raca.trim() || null,
+        cor: formPet.cor.trim() || null,
         porte: formPet.porte || null,
         sexo: formPet.sexo || null,
         data_nascimento: formPet.data_nascimento || null,
@@ -456,11 +470,12 @@ function PopupUnidade({
         const erroArquivo = validarArquivo(arquivo);
         if (erroArquivo) throw new Error(erroArquivo);
 
-        const extensao = arquivo.type === "image/png"
-          ? "png"
-          : arquivo.type === "image/webp"
-            ? "webp"
-            : "jpg";
+        const extensao =
+          arquivo.type === "image/png"
+            ? "png"
+            : arquivo.type === "image/webp"
+              ? "webp"
+              : "jpg";
 
         caminhoNovo =
           `${morador.condominio_id}/${morador.unidade_id}/veiculos/` +
@@ -484,7 +499,9 @@ function PopupUnidade({
 
       if (
         anoNumero !== null &&
-        (!Number.isInteger(anoNumero) || anoNumero < 1900 || anoNumero > 2100)
+        (!Number.isInteger(anoNumero) ||
+          anoNumero < 1900 ||
+          anoNumero > 2100)
       ) {
         throw new Error("Informe um ano válido.");
       }
@@ -711,8 +728,10 @@ function PopupUnidade({
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-bold text-white">
-                  {registroId ? "Editar" : "Novo"} {tipo === "pets" ? "pet" : "veículo"}
+                  {registroId ? "Editar" : "Novo"}{" "}
+                  {tipo === "pets" ? "pet" : "veículo"}
                 </h3>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -733,13 +752,20 @@ function PopupUnidade({
                     setFormPet((f) => ({ ...f, nome: v }))
                   )}
 
-                  {campo("Espécie *", formPet.especie, (v) =>
-                    setFormPet((f) => ({ ...f, especie: v })),
+                  {campo(
+                    "Espécie *",
+                    formPet.especie,
+                    (v) => setFormPet((f) => ({ ...f, especie: v })),
                     "Ex.: Cachorro, gato..."
                   )}
 
                   {campo("Raça", formPet.raca, (v) =>
                     setFormPet((f) => ({ ...f, raca: v }))
+                  )}
+
+                  {campo("Cor", formPet.cor, (v) =>
+                    setFormPet((f) => ({ ...f, cor: v })),
+                    "Ex.: Caramelo, preto, branco..."
                   )}
 
                   <label className="flex flex-col gap-1 text-sm text-slate-200">
@@ -776,7 +802,11 @@ function PopupUnidade({
                   {campo(
                     "Data de nascimento",
                     formPet.data_nascimento,
-                    (v) => setFormPet((f) => ({ ...f, data_nascimento: v })),
+                    (v) =>
+                      setFormPet((f) => ({
+                        ...f,
+                        data_nascimento: v,
+                      })),
                     "",
                     "date"
                   )}
@@ -807,11 +837,16 @@ function PopupUnidade({
                   )}
 
                   {campo("Placa *", formVeiculo.placa, (v) =>
-                    setFormVeiculo((f) => ({ ...f, placa: v.toUpperCase() }))
+                    setFormVeiculo((f) => ({
+                      ...f,
+                      placa: v.toUpperCase(),
+                    }))
                   )}
 
-                  {campo("Ano", formVeiculo.ano, (v) =>
-                    setFormVeiculo((f) => ({ ...f, ano: v })),
+                  {campo(
+                    "Ano",
+                    formVeiculo.ano,
+                    (v) => setFormVeiculo((f) => ({ ...f, ano: v })),
                     "",
                     "number"
                   )}
@@ -821,8 +856,14 @@ function PopupUnidade({
                   )}
 
                   <div className="sm:col-span-2">
-                    {campoTexto("Observações", formVeiculo.observacoes, (v) =>
-                      setFormVeiculo((f) => ({ ...f, observacoes: v }))
+                    {campoTexto(
+                      "Observações",
+                      formVeiculo.observacoes,
+                      (v) =>
+                        setFormVeiculo((f) => ({
+                          ...f,
+                          observacoes: v,
+                        }))
                     )}
                   </div>
                 </div>
@@ -931,6 +972,12 @@ function PopupUnidade({
                           {pet.raca ? ` • ${pet.raca}` : ""}
                         </p>
 
+                        {pet.cor && (
+                          <p className="text-sm text-slate-300">
+                            Cor: {pet.cor}
+                          </p>
+                        )}
+
                         <div className="flex flex-wrap gap-2 text-xs">
                           {pet.porte && (
                             <span className="bg-emerald-900/50 text-emerald-200 px-2 py-1 rounded">
@@ -947,7 +994,10 @@ function PopupUnidade({
                         {pet.data_nascimento && (
                           <p className="text-xs text-slate-400 flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            Nascimento: {new Date(`${pet.data_nascimento}T12:00:00`).toLocaleDateString("pt-BR")}
+                            Nascimento:{" "}
+                            {new Date(
+                              `${pet.data_nascimento}T12:00:00`
+                            ).toLocaleDateString("pt-BR")}
                           </p>
                         )}
 
@@ -1039,8 +1089,12 @@ function PopupUnidade({
                           </p>
 
                           <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                            {veiculo.ano && <span>Ano: {veiculo.ano}</span>}
-                            {veiculo.vaga && <span>Vaga: {veiculo.vaga}</span>}
+                            {veiculo.ano && (
+                              <span>Ano: {veiculo.ano}</span>
+                            )}
+                            {veiculo.vaga && (
+                              <span>Vaga: {veiculo.vaga}</span>
+                            )}
                           </div>
 
                           {veiculo.observacoes && (
@@ -1100,6 +1154,11 @@ export default function ListaMoradores() {
     tipo: TipoPopup;
   } | null>(null);
 
+  const [resultadosBusca, setResultadosBusca] =
+    useState<ResultadoBusca[]>([]);
+  const [buscandoRegistros, setBuscandoRegistros] = useState(false);
+  const [erroBusca, setErroBusca] = useState("");
+
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -1150,6 +1209,229 @@ export default function ListaMoradores() {
     carregarMoradores();
   }, [supabase]);
 
+  useEffect(() => {
+    let ativo = true;
+
+    async function pesquisarRegistros() {
+      const termo = busca.trim();
+
+      if (termo.length < 2 || !perfilUsuario) {
+        setResultadosBusca([]);
+        setErroBusca("");
+        setBuscandoRegistros(false);
+        return;
+      }
+
+      if (
+        !["morador", "sindico", "subsindico"].includes(
+          perfilUsuario.role
+        )
+      ) {
+        setResultadosBusca([]);
+        return;
+      }
+
+      setBuscandoRegistros(true);
+      setErroBusca("");
+
+      try {
+        const padrao = `%${termo}%`;
+        const condominioId = perfilUsuario.condominio_id;
+
+        const consultasPets = await Promise.all([
+          supabase
+            .from("pets")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("nome", padrao)
+            .limit(30),
+
+          supabase
+            .from("pets")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("especie", padrao)
+            .limit(30),
+
+          supabase
+            .from("pets")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("raca", padrao)
+            .limit(30),
+
+          supabase
+            .from("pets")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("cor", padrao)
+            .limit(30),
+        ]);
+
+        const consultasVeiculos = await Promise.all([
+          supabase
+            .from("veiculos")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("marca", padrao)
+            .limit(30),
+
+          supabase
+            .from("veiculos")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("modelo", padrao)
+            .limit(30),
+
+          supabase
+            .from("veiculos")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("tipo", padrao)
+            .limit(30),
+
+          supabase
+            .from("veiculos")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("cor", padrao)
+            .limit(30),
+
+          supabase
+            .from("veiculos")
+            .select("*")
+            .eq("condominio_id", condominioId)
+            .ilike("placa", padrao)
+            .limit(30),
+        ]);
+
+        if (!ativo) return;
+
+        const erroConsultas = [
+          ...consultasPets,
+          ...consultasVeiculos,
+        ].find((resultado) => resultado.error);
+
+        if (erroConsultas?.error) {
+          throw erroConsultas.error;
+        }
+
+        const petsUnicos = new Map<number, Pet>();
+        consultasPets.forEach(({ data }) => {
+          (data || []).forEach((pet) => {
+            petsUnicos.set(pet.id, pet as Pet);
+          });
+        });
+
+        const veiculosUnicos = new Map<number, Veiculo>();
+        consultasVeiculos.forEach(({ data }) => {
+          (data || []).forEach((veiculo) => {
+            veiculosUnicos.set(veiculo.id, veiculo as Veiculo);
+          });
+        });
+
+        const resultados: ResultadoBusca[] = [];
+
+        const petsComFoto = await Promise.all(
+          Array.from(petsUnicos.values()).map(async (pet) => {
+            let fotoAssinada: string | null = null;
+
+            if (caminhoFotoValido(pet.foto_url)) {
+              const { data: foto } = await supabase.storage
+                .from(BUCKET)
+                .createSignedUrl(pet.foto_url!, 3600);
+
+              fotoAssinada = foto?.signedUrl || null;
+            }
+
+            return {
+              ...pet,
+              foto_assinada: fotoAssinada,
+            };
+          })
+        );
+
+        const veiculosComFoto = await Promise.all(
+          Array.from(veiculosUnicos.values()).map(async (veiculo) => {
+            let fotoAssinada: string | null = null;
+
+            if (caminhoFotoValido(veiculo.foto_url)) {
+              const { data: foto } = await supabase.storage
+                .from(BUCKET)
+                .createSignedUrl(veiculo.foto_url!, 3600);
+
+              fotoAssinada = foto?.signedUrl || null;
+            }
+
+            return {
+              ...veiculo,
+              foto_assinada: fotoAssinada,
+            };
+          })
+        );
+
+        petsComFoto.forEach((pet) => {
+          const morador = moradores.find(
+            (m) =>
+              m.unidade_id === pet.unidade_id &&
+              m.condominio_id === pet.condominio_id
+          );
+
+          if (morador) {
+            resultados.push({
+              tipo: "pets",
+              registro: pet,
+              morador,
+            });
+          }
+        });
+
+        veiculosComFoto.forEach((veiculo) => {
+          const morador = moradores.find(
+            (m) =>
+              m.unidade_id === veiculo.unidade_id &&
+              m.condominio_id === veiculo.condominio_id
+          );
+
+          if (morador) {
+            resultados.push({
+              tipo: "veiculos",
+              registro: veiculo,
+              morador,
+            });
+          }
+        });
+
+        if (ativo) {
+          setResultadosBusca(resultados);
+        }
+      } catch (error) {
+        console.error("Erro na pesquisa de Pets e Veículos:", error);
+
+        if (ativo) {
+          setErroBusca(
+            "Não foi possível pesquisar Pets e Veículos."
+          );
+          setResultadosBusca([]);
+        }
+      } finally {
+        if (ativo) {
+          setBuscandoRegistros(false);
+        }
+      }
+    }
+
+    const temporizador = window.setTimeout(
+      pesquisarRegistros,
+      350
+    );
+
+    return () => {
+      ativo = false;
+      window.clearTimeout(temporizador);
+    };
+  }, [busca, perfilUsuario, moradores, supabase]);
+
   const moradoresFiltrados = moradores.filter((m) =>
     `${m.nome || ""} ${m.unidade || ""}`
       .toLowerCase()
@@ -1164,17 +1446,158 @@ export default function ListaMoradores() {
     setPopupUnidade({ morador, tipo: "veiculos" });
   }
 
+  function abrirResultado(resultado: ResultadoBusca) {
+    setPopupUnidade({
+      morador: resultado.morador,
+      tipo: resultado.tipo,
+    });
+  }
+
+  const mostrarResultados = busca.trim().length >= 2;
+
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+
         <Input
-          placeholder="Buscar por nome ou unidade..."
+          placeholder="Buscar morador, unidade, pet, raça, cor, veículo ou placa..."
           className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400 focus-visible:ring-blue-500"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
+
+        {busca && (
+          <button
+            type="button"
+            onClick={() => setBusca("")}
+            className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+            aria-label="Limpar pesquisa"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
+
+      {mostrarResultados && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-bold text-white">
+              Resultados de Pets e Veículos
+            </h3>
+
+            {buscandoRegistros && (
+              <span className="flex items-center gap-2 text-xs text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Pesquisando...
+              </span>
+            )}
+          </div>
+
+          {erroBusca && (
+            <div className="p-3 rounded-lg bg-red-950/50 text-red-200 text-sm border border-red-800">
+              {erroBusca}
+            </div>
+          )}
+
+          {!buscandoRegistros &&
+            !erroBusca &&
+            resultadosBusca.length === 0 && (
+              <div className="p-4 rounded-xl border border-slate-700 bg-slate-800 text-center text-sm text-slate-300">
+                Nenhum Pet ou Veículo encontrado com esse termo.
+              </div>
+            )}
+
+          {resultadosBusca.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {resultadosBusca.map((resultado) => {
+                const pet = resultado.tipo === "pets"
+                  ? (resultado.registro as Pet)
+                  : null;
+
+                const veiculo = resultado.tipo === "veiculos"
+                  ? (resultado.registro as Veiculo)
+                  : null;
+
+                return (
+                  <button
+                    type="button"
+                    key={`${resultado.tipo}-${resultado.registro.id}`}
+                    onClick={() => abrirResultado(resultado)}
+                    className="text-left flex gap-3 p-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors"
+                  >
+                    <div className="w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center">
+                      {resultado.registro.foto_assinada ? (
+                        <img
+                          src={resultado.registro.foto_assinada}
+                          alt={
+                            pet?.nome ||
+                            `${veiculo?.marca || ""} ${veiculo?.modelo || ""}`
+                          }
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        resultado.tipo === "pets" ? (
+                          <PawPrint className="w-9 h-9 text-emerald-500" />
+                        ) : (
+                          <CarFront className="w-9 h-9 text-blue-500" />
+                        )
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {resultado.tipo === "pets" ? (
+                          <PawPrint className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <CarFront className="w-4 h-4 text-blue-400 shrink-0" />
+                        )}
+
+                        <span className="text-xs text-slate-400">
+                          {resultado.tipo === "pets" ? "Pet" : "Veículo"}
+                        </span>
+                      </div>
+
+                      <p className="font-bold text-white truncate">
+                        {pet?.nome ||
+                          [veiculo?.marca, veiculo?.modelo]
+                            .filter(Boolean)
+                            .join(" ") ||
+                          veiculo?.tipo}
+                      </p>
+
+                      {pet && (
+                        <p className="text-xs text-slate-300 mt-1">
+                          {[pet.especie, pet.raca, pet.cor]
+                            .filter(Boolean)
+                            .join(" • ")}
+                        </p>
+                      )}
+
+                      {veiculo && (
+                        <>
+                          <p className="text-xs text-slate-300 mt-1">
+                            {[veiculo.tipo, veiculo.cor]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </p>
+                          <p className="text-xs text-slate-300">
+                            Placa: {veiculo.placa}
+                          </p>
+                        </>
+                      )}
+
+                      <p className="text-xs text-blue-300 mt-2 font-semibold">
+                        Unidade: {resultado.morador.unidade}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-sm overflow-hidden">
         {loading ? (
@@ -1260,133 +1683,124 @@ export default function ListaMoradores() {
         )}
       </div>
 
+      {moradorSelecionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <User className="w-5 h-5 text-blue-400 shrink-0" />
+                <h2 className="text-lg font-bold text-white truncate">
+                  {moradorSelecionado.nome || "Morador"}
+                </h2>
+              </div>
 
-{moradorSelecionado && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
-    <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMoradorSelecionado(null)}
+                aria-label="Fechar"
+                className="!bg-transparent !text-slate-300 hover:!bg-slate-700 hover:!text-white shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
 
-      {/* Cabeçalho */}
-      <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <User className="w-5 h-5 text-blue-400 shrink-0" />
-          <h2 className="text-lg font-bold text-white truncate">
-            {moradorSelecionado.nome || "Morador"}
-          </h2>
-        </div>
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto text-slate-100">
+              <div>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Unidade
+                </span>
+                <p className="text-white font-semibold text-base mt-1">
+                  {moradorSelecionado.unidade || "Não informada"}
+                </p>
+              </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMoradorSelecionado(null)}
-          aria-label="Fechar"
-          className="!bg-transparent !text-slate-300 hover:!bg-slate-700 hover:!text-white shrink-0"
-        >
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
+              <div>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  WhatsApp / Telefone
+                </span>
+                <p className="text-slate-200 mt-1">
+                  {moradorSelecionado.whatsapp ||
+                    moradorSelecionado.telefone ||
+                    "Não informado"}
+                </p>
+              </div>
 
-      {/* Informações */}
-      <div className="p-5 flex flex-col gap-4 overflow-y-auto text-slate-100">
+              {(moradorSelecionado.nome_para_recados ||
+                moradorSelecionado.telefone_recados) && (
+                <div className="bg-orange-950/40 p-3 rounded-lg border border-orange-800">
+                  <span className="text-xs font-semibold text-orange-300 uppercase tracking-wider">
+                    Contato de recados
+                  </span>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            Unidade
-          </span>
-          <p className="text-white font-semibold text-base mt-1">
-            {moradorSelecionado.unidade || "Não informada"}
-          </p>
-        </div>
+                  {moradorSelecionado.nome_para_recados && (
+                    <p className="text-orange-100 text-sm mt-2">
+                      {moradorSelecionado.nome_para_recados}
+                    </p>
+                  )}
 
-        <div>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            WhatsApp / Telefone
-          </span>
-          <p className="text-slate-200 mt-1">
-            {moradorSelecionado.whatsapp ||
-              moradorSelecionado.telefone ||
-              "Não informado"}
-          </p>
-        </div>
+                  {moradorSelecionado.telefone_recados && (
+                    <p className="text-orange-100 text-sm mt-1">
+                      {moradorSelecionado.telefone_recados}
+                    </p>
+                  )}
+                </div>
+              )}
 
-        {(moradorSelecionado.nome_para_recados ||
-          moradorSelecionado.telefone_recados) && (
-          <div className="bg-orange-950/40 p-3 rounded-lg border border-orange-800">
-            <span className="text-xs font-semibold text-orange-300 uppercase tracking-wider">
-              Contato de recados
-            </span>
+              {moradorSelecionado.ponto_referencia && (
+                <div>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Ponto de referência
+                  </span>
+                  <p className="text-slate-200 text-sm mt-1 whitespace-pre-wrap">
+                    {moradorSelecionado.ponto_referencia}
+                  </p>
+                </div>
+              )}
+            </div>
 
-            {moradorSelecionado.nome_para_recados && (
-              <p className="text-orange-100 text-sm mt-2">
-                {moradorSelecionado.nome_para_recados}
-              </p>
-            )}
+            <div className="p-4 border-t border-slate-700 bg-slate-900 flex flex-wrap gap-2">
+              {normalizarWhatsApp(
+                moradorSelecionado.whatsapp ||
+                moradorSelecionado.telefone
+              ) && (
+                <a
+                  href={`https://wa.me/${normalizarWhatsApp(
+                    moradorSelecionado.whatsapp ||
+                    moradorSelecionado.telefone
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-md transition-colors font-semibold text-sm"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp
+                </a>
+              )}
 
-            {moradorSelecionado.telefone_recados && (
-              <p className="text-orange-100 text-sm mt-1">
-                {moradorSelecionado.telefone_recados}
-              </p>
-            )}
+              {moradorSelecionado.link_google_maps && (
+                <a
+                  href={moradorSelecionado.link_google_maps}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[100px] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-3 rounded-md transition-colors font-semibold text-sm"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Maps
+                </a>
+              )}
+
+              <Button
+                variant="outline"
+                onClick={() => setMoradorSelecionado(null)}
+                className="!bg-slate-700 !border-slate-600 !text-white hover:!bg-slate-600 hover:!text-white"
+              >
+                Fechar
+              </Button>
+            </div>
           </div>
-        )}
-
-        {moradorSelecionado.ponto_referencia && (
-          <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Ponto de referência
-            </span>
-            <p className="text-slate-200 text-sm mt-1 whitespace-pre-wrap">
-              {moradorSelecionado.ponto_referencia}
-            </p>
-          </div>
-        )}
-
-      </div>
-
-      {/* Ações */}
-      <div className="p-4 border-t border-slate-700 bg-slate-900 flex flex-wrap gap-2">
-
-        {normalizarWhatsApp(
-          moradorSelecionado.whatsapp ||
-          moradorSelecionado.telefone
-        ) && (
-          <a
-            href={`https://wa.me/${normalizarWhatsApp(
-              moradorSelecionado.whatsapp ||
-              moradorSelecionado.telefone
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2.5 px-3 rounded-md transition-colors font-semibold text-sm"
-          >
-            <MessageCircle className="w-4 h-4" />
-            WhatsApp
-          </a>
-        )}
-
-        {moradorSelecionado.link_google_maps && (
-          <a
-            href={moradorSelecionado.link_google_maps}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 min-w-[100px] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-3 rounded-md transition-colors font-semibold text-sm"
-          >
-            <MapPin className="w-4 h-4" />
-            Maps
-          </a>
-        )}
-
-        <Button
-          variant="outline"
-          onClick={() => setMoradorSelecionado(null)}
-          className="!bg-slate-700 !border-slate-600 !text-white hover:!bg-slate-600 hover:!text-white"
-        >
-          Fechar
-        </Button>
-
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
       {popupUnidade && (
         <PopupUnidade
