@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -25,22 +26,39 @@ export function ForgotPasswordForm({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleForgotPassword = async (
-    e: React.SubmitEvent<HTMLFormElement>,
+    e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
+
     const supabase = createClient();
+
     setIsLoading(true);
     setError(null);
 
     try {
-      // The url which will be included in the email. This URL needs to be configured in your redirect URLs in the Supabase dashboard at https://supabase.com/dashboard/project/_/auth/url-configuration
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
-      });
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? "https://ns.sotoyotas.com.br"
+          : window.location.origin;
+
+      const redirectTo = `${baseUrl}/auth/update-password`;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        { redirectTo }
+      );
+
       if (error) throw error;
+
       setSuccess(true);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      console.error("Erro na recuperação de senha:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível solicitar a recuperação da senha."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -51,51 +69,86 @@ export function ForgotPasswordForm({
       {success ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Check Your Email</CardTitle>
-            <CardDescription>Password reset instructions sent</CardDescription>
+            <CardTitle className="text-2xl">
+              Confira seu e-mail
+            </CardTitle>
+            <CardDescription>
+              Enviamos as instruções para redefinir sua senha.
+            </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              If you registered using your email and password, you will receive
-              a password reset email.
-            </p>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Caso exista uma conta cadastrada com este endereço,
+                você receberá um e-mail com o link para criar uma nova senha.
+              </p>
+
+              <p className="break-all text-sm font-medium">{email}</p>
+
+              <p className="text-sm text-muted-foreground">
+                Se não encontrar a mensagem, confira também a pasta de spam.
+              </p>
+
+              <Link
+                href="/auth/login"
+                className="block text-center text-sm underline underline-offset-4"
+              >
+                Voltar para o login
+              </Link>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Reset Your Password</CardTitle>
+            <CardTitle className="text-2xl">
+              Recuperar senha
+            </CardTitle>
             <CardDescription>
-              Type in your email and we&apos;ll send you a link to reset your
-              password
+              Informe seu e-mail cadastrado para receber o link
+              de redefinição da senha.
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleForgotPassword}>
               <div className="flex flex-col gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">E-mail cadastrado</Label>
+
                   <Input
                     id="email"
                     type="email"
-                    placeholder="m@example.com"
+                    placeholder="seuemail@exemplo.com"
                     required
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-                {error && <p className="text-sm text-red-500">{error}</p>}
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send reset email"}
+
+                {error && (
+                  <p className="text-sm text-red-500">{error}</p>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading
+                    ? "Enviando..."
+                    : "Enviar link de recuperação"}
                 </Button>
               </div>
+
               <div className="mt-4 text-center text-sm">
-                Already have an account?{" "}
                 <Link
                   href="/auth/login"
                   className="underline underline-offset-4"
                 >
-                  Login
+                  Voltar para o login
                 </Link>
               </div>
             </form>
