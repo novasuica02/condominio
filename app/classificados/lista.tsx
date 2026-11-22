@@ -638,16 +638,16 @@ export function ClassificadosLista({
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex w-full flex-nowrap gap-2 overflow-x-auto overflow-y-hidden pb-2">
                 {categorias.map((item) => (
                   <button
                     key={item.valor}
                     onClick={() => setCategoria(item.valor)}
-                    className={`rounded-full px-3 py-2 text-xs transition sm:px-4 sm:text-sm ${
-                      categoria === item.valor
+                    className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs transition sm:text-sm ${
+                       categoria === item.valor
                         ? "bg-blue-600 text-white"
-                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                    }`}
+                      : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+          }`}
                   >
                     {item.nome}
                   </button>
