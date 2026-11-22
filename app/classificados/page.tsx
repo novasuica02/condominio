@@ -37,7 +37,7 @@ async function ClassificadosContent() {
         <Header
           showBackButton={true}
           backUrl="/protected"
-          backText="Área do Morador"
+          backText="Menu"
         />
       </div>
 

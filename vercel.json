@@ -1,0 +1,9 @@
+
+{
+  "crons": [
+    {
+      "path": "/api/classificados/processar",
+      "schedule": "10 6 * * *"
+    }
+  ]
+}
