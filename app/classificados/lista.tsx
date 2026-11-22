@@ -15,6 +15,7 @@ import {
   Calendar,
   ClipboardList,
   ArrowLeft,
+  Pencil,
 } from "lucide-react";
 
 type StatusClassificado =
@@ -458,8 +459,9 @@ export function ClassificadosLista({
               <div className="space-y-4">
                 {meusAnuncios.map((anuncio) => {
                   const statusInfo = formatarStatus(anuncio.status);
+                  const linkEdicao = `/classificados/${anuncio.id}/editar`;
 
-                  // ANÚNCIO EXPIRADO: DESTAQUE E RENOVAÇÃO.
+                  // ANÚNCIO EXPIRADO: EDIÇÃO E RENOVAÇÃO SEPARADAS.
                   if (anuncio.status === "expirado") {
                     return (
                       <article
@@ -513,30 +515,40 @@ export function ClassificadosLista({
                               </p>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => renovarAnuncio(anuncio.id)}
-                              disabled={
-                                renovandoId === anuncio.id ||
-                                anuncio.exclusao_em_processamento
-                              }
-                              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
-                            >
-                              <RefreshCw
-                                size={19}
-                                className={
-                                  renovandoId === anuncio.id
-                                    ? "animate-spin"
-                                    : ""
-                                }
-                              />
+                            <div className="flex flex-col gap-2">
+                              <Link
+                                href={linkEdicao}
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-500/60 bg-blue-600/10 px-4 py-3 text-sm font-bold text-blue-300 transition hover:bg-blue-600 hover:text-white"
+                              >
+                                <Pencil size={17} />
+                                EDITAR ANÚNCIO
+                              </Link>
 
-                              {anuncio.exclusao_em_processamento
-                                ? "Exclusão em processamento"
-                                : renovandoId === anuncio.id
-                                  ? "RENOVANDO..."
-                                  : "RENOVAR ANÚNCIO"}
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => renovarAnuncio(anuncio.id)}
+                                disabled={
+                                  renovandoId === anuncio.id ||
+                                  anuncio.exclusao_em_processamento
+                                }
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
+                              >
+                                <RefreshCw
+                                  size={19}
+                                  className={
+                                    renovandoId === anuncio.id
+                                      ? "animate-spin"
+                                      : ""
+                                  }
+                                />
+
+                                {anuncio.exclusao_em_processamento
+                                  ? "Exclusão em processamento"
+                                  : renovandoId === anuncio.id
+                                    ? "RENOVANDO..."
+                                    : "RENOVAR ANÚNCIO"}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </article>
@@ -605,16 +617,26 @@ export function ClassificadosLista({
                         )}
                       </div>
 
-                      <div className="text-right">
-                        <p className="text-base font-bold text-green-400">
-                          {formatarValor(anuncio.valor)}
-                        </p>
+                      <div className="flex w-full shrink-0 flex-col gap-3 sm:w-44">
+                        <div className="text-left sm:text-right">
+                          <p className="text-base font-bold text-green-400">
+                            {formatarValor(anuncio.valor)}
+                          </p>
 
-                        <p className="mt-1 text-xs text-slate-400">
-                          {anuncio.tipo_anuncio === "procura"
-                            ? "Procurando"
-                            : "Oferecendo"}
-                        </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {anuncio.tipo_anuncio === "procura"
+                              ? "Procurando"
+                              : "Oferecendo"}
+                          </p>
+                        </div>
+
+                        <Link
+                          href={linkEdicao}
+                          className="flex items-center justify-center gap-2 rounded-lg border border-blue-500/60 bg-blue-600/10 px-3 py-2.5 text-sm font-semibold text-blue-300 transition hover:bg-blue-600 hover:text-white"
+                        >
+                          <Pencil size={16} />
+                          EDITAR ANÚNCIO
+                        </Link>
                       </div>
                     </article>
                   );
@@ -644,10 +666,10 @@ export function ClassificadosLista({
                     key={item.valor}
                     onClick={() => setCategoria(item.valor)}
                     className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs transition sm:text-sm ${
-                       categoria === item.valor
+                      categoria === item.valor
                         ? "bg-blue-600 text-white"
-                      : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-          }`}
+                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                    }`}
                   >
                     {item.nome}
                   </button>
