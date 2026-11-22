@@ -11,6 +11,7 @@ import {
   Users,
   Shield,
   Phone,
+  ShoppingBag,
 } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -81,6 +82,20 @@ async function PainelContent() {
               </h2>
               <p className="text-[10px] sm:text-xs text-slate-400 hidden sm:block">
                 Manutenção e reparos
+              </p>
+            </div>
+          </Link>
+
+          <Link href="/classificados" className="group">
+            <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-amber-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-900/50 text-amber-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <h2 className="text-sm sm:text-base font-bold mb-1 text-white leading-tight">
+                Classificados
+              </h2>
+              <p className="text-[10px] sm:text-xs text-slate-400 hidden sm:block">
+                Compra, venda e serviços
               </p>
             </div>
           </Link>
