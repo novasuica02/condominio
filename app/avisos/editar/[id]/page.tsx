@@ -4,40 +4,95 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import Header from "@/components/Header";
 import EditarAvisoForm from "./form";
 
-async function CarregarAviso({ paramsPromise }: { paramsPromise: Promise<{ id: string }> }) {
+async function CarregarAviso({
+  paramsPromise,
+}: {
+  paramsPromise: Promise<{ id: string }>;
+}) {
   const { id } = await paramsPromise;
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) redirect("/auth/login");
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "sindico") redirect("/avisos");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, condominio_id")
+    .eq("id", user.id)
+    .single();
 
-  const { data: aviso } = await supabase.from("avisos").select("*").eq("id", id).single();
-  if (!aviso) return <div className="text-red-500">Aviso não encontrado.</div>;
+  if (
+    !profile ||
+    !["sindico", "subsindico"].includes(profile.role)
+  ) {
+    redirect("/avisos");
+  }
+
+  const { data: aviso } = await supabase
+    .from("avisos")
+    .select("*")
+    .eq("id", id)
+    .eq("condominio_id", profile.condominio_id)
+    .single();
+
+  if (!aviso) {
+    return (
+      <div className="text-red-400 p-6">
+        Aviso não encontrado.
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl bg-slate-800 p-6 md:p-8 rounded-xl border border-slate-700 shadow-sm">
       <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
         <Link href="/avisos">
-          <Button variant="ghost" size="icon" className="-ml-2 text-slate-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="-ml-2 text-slate-400 hover:text-white"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
         </Link>
-        <h1 className="text-xl font-bold text-white">Editar Aviso</h1>
+
+        <h1 className="text-xl font-bold text-white">
+          Editar Aviso
+        </h1>
       </div>
+
       <EditarAvisoForm aviso={aviso} />
     </div>
   );
 }
 
-export default function EditarAvisoPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditarAvisoPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   return (
-    <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-900 min-h-screen">
-      <Suspense fallback={<div className="text-center p-12 text-slate-400">Carregando aviso...</div>}>
-        <CarregarAviso paramsPromise={params} />
-      </Suspense>
+    <div className="flex-1 w-full flex flex-col bg-slate-900 min-h-screen">
+      <Header />
+
+      <main className="flex-1 w-full flex flex-col items-center p-4 md:p-12">
+        <Suspense
+          fallback={
+            <div className="text-center p-12 text-slate-400">
+              Carregando aviso...
+            </div>
+          }
+        >
+          <CarregarAviso paramsPromise={params} />
+        </Suspense>
+      </main>
     </div>
   );
 }

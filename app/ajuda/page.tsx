@@ -7,7 +7,7 @@ import {
   Lock, Megaphone, Wrench, UserCircle, FileText, Users,
   ChevronDown, ChevronUp, BookOpen, ShieldAlert, ChevronRight,
   Mail, MessageCircle, ClipboardList, CalendarClock, CheckCircle2,
-  Paperclip, History, MapPin, Info, AlertTriangle,
+  Paperclip, History, MapPin, Info, AlertTriangle, Store,
 } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -223,8 +223,48 @@ export default function AjudaPage() {
       ),
     },
     {
+      id: "classificados",
+      titulo: "12. Classificados: anúncios entre moradores",
+      icone: <Store className="w-5 h-5 text-amber-400" />,
+      cor: "bg-amber-900/40",
+      conteudo: (
+        <div className="space-y-3 text-slate-300 text-sm">
+          <p>O módulo Classificados permite que moradores publiquem anúncios de compra, venda, procura, serviços, imóveis, doações e outros assuntos de interesse entre moradores. Ele não substitui os chamados de manutenção do condomínio.</p>
+          <p><strong>Consultar e pesquisar anúncios</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Acesse Classificados para consultar as publicações ativas.</li>
+            <li>Use a pesquisa por título ou descrição e os filtros de categoria para localizar anúncios.</li>
+            <li>Confira a descrição e as informações de contato apresentadas na publicação. Combine diretamente com o anunciante os detalhes da negociação.</li>
+          </ul>
+          <p><strong>Publicar um anúncio</strong></p>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>Escolha a categoria e indique se está oferecendo algo ou procurando.</li>
+            <li>Informe título e descrição. O título aceita até 100 caracteres e a descrição até 2.000.</li>
+            <li>O valor é opcional. Informe nome e telefone/WhatsApp para contato, se desejar.</li>
+            <li>É possível adicionar até 5 fotos, nos formatos JPG, PNG ou WEBP, com até 5 MB cada.</li>
+            <li>Ao enviar, a publicação segue a configuração do condomínio: publicação automática ou envio para aprovação administrativa.</li>
+          </ol>
+          <p><strong>Meus anúncios e edição</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Em Meus Anúncios, acompanhe a situação das suas publicações, inclusive pendentes, ativas, rejeitadas, encerradas ou expiradas.</li>
+            <li>Na edição, é possível alterar categoria, tipo, título, descrição, valor, contato e fotos. Também é possível remover fotos, adicionar outras e reorganizar a ordem; a primeira será a foto principal.</li>
+            <li>A edição não altera o status nem renova a validade. Um anúncio expirado continua expirado depois de editado.</li>
+            <li>Um anúncio em processo de exclusão não pode ser editado.</li>
+          </ul>
+          <p><strong>Validade e renovação</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>A validade é definida pela configuração do condomínio. Quando não houver valor configurado, o sistema utiliza 30 dias.</li>
+            <li>Quando um anúncio expira, ele deixa de aparecer na lista pública. Consulte Meus Anúncios para verificar a situação e a opção Renovar, quando disponível.</li>
+            <li>A renovação de um anúncio ativo ou expirado reinicia o período de validade. Conforme a configuração, a publicação pode voltar automaticamente como ativa ou ficar pendente de aprovação.</li>
+            <li>Se a renovação ficar pendente, a nova publicação e a nova validade aguardam a aprovação. A exclusão programada é cancelada quando a renovação é solicitada.</li>
+          </ul>
+          <p className="text-amber-200">A edição e a renovação são ações diferentes: editar corrige o conteúdo; renovar solicita um novo período de publicação. O encerramento manual do anúncio não está descrito neste guia porque seu procedimento ainda não foi confirmado.</p>
+        </div>
+      ),
+    },
+    {
       id: "indicacoes",
-      titulo: "12. Profissionais indicados para serviços particulares",
+      titulo: "13. Profissionais indicados para serviços particulares",
       icone: <UserCircle className="w-5 h-5 text-teal-400" />,
       cor: "bg-teal-900/50",
       conteudo: (

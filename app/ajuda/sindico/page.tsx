@@ -5,7 +5,7 @@ import {
   Megaphone, Wrench, UserCircle, FileText, Users, Shield,
   ChevronDown, ChevronUp, Settings, AlertTriangle, Mail,
   MessageCircle, Bell, ClipboardList, CalendarClock, CheckCircle2,
-  Tags, Building2, Paperclip, History, UserCog, Info,
+  Tags, Building2, Paperclip, History, UserCog, Info, Store,
 } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -211,8 +211,48 @@ export default function ManualSindicoPage() {
       ),
     },
     {
+      id: "classificados",
+      titulo: "12. Classificados: administração, publicação e renovação",
+      icone: <Store className="w-5 h-5 text-amber-400" />,
+      cor: "bg-amber-900/40",
+      conteudo: (
+        <div className="space-y-3 text-slate-300 text-sm">
+          <p>Classificados é o espaço de anúncios entre moradores. Não deve ser confundido com os chamados de manutenção nem com o cadastro de Profissionais Indicados, que serve para divulgar contatos de profissionais para serviços particulares.</p>
+          <p><strong>Configurações do módulo</strong></p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>A configuração do condomínio define o prazo de validade dos anúncios por meio de <code>classificados_validade_dias</code>. Se não houver valor configurado, a função de renovação utiliza 30 dias.</li>
+            <li>A configuração <code>classificados_aprovacao</code> determina se a publicação segue o modo automático ou exige aprovação administrativa.</li>
+            <li>O comportamento efetivo deve ser conferido na configuração vigente do condomínio. Não presuma que todos os anúncios serão publicados automaticamente ou que todos dependerão de aprovação.</li>
+          </ul>
+          <p><strong>Acompanhamento das situações</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Pendente:</strong> aguarda aprovação quando a configuração exige análise administrativa.</li>
+            <li><strong>Ativo:</strong> publicação disponível aos moradores até o fim da validade.</li>
+            <li><strong>Rejeitado:</strong> publicação não aprovada; quando houver motivo registrado, ele pode ser consultado pelo anunciante.</li>
+            <li><strong>Encerrado:</strong> situação exibida na área Meus Anúncios.</li>
+            <li><strong>Expirado:</strong> prazo de publicação terminou e o anúncio deixa de aparecer na listagem pública.</li>
+          </ul>
+          <p><strong>Renovação</strong></p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>A função de renovação aceita anúncios com status Ativo ou Expirado, desde que não estejam em processo de exclusão.</li>
+            <li>O morador autor pode renovar o próprio anúncio. A administração do condomínio também pode executar a renovação, conforme a permissão administrativa.</li>
+            <li>Quando a renovação é feita pela administração, o anúncio volta a Ativo. Quando solicitada pelo morador, o resultado depende da configuração: modo automático ativa a publicação; modo com aprovação deixa o anúncio Pendente.</li>
+            <li>Na ativação, o sistema registra a nova data de publicação e calcula a validade usando o prazo configurado (padrão de 30 dias). Se ficar pendente, a data de publicação e a validade permanecem sem preenchimento até a aprovação.</li>
+            <li>A renovação cancela a data de exclusão programada, registra a data da renovação, incrementa o contador de renovações e limpa eventual motivo de rejeição anterior.</li>
+          </ul>
+          <p><strong>Diferença entre editar e renovar</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Editar altera categoria, tipo, título, descrição, valor, contato e fotos, sem modificar status, validade ou histórico de renovação.</li>
+            <li>Renovar solicita novo período de publicação e pode alterar o status conforme as regras acima.</li>
+            <li>Anúncios em processo de exclusão não podem ser editados nem renovados pela função analisada.</li>
+          </ul>
+          <p className="text-amber-200">O procedimento de encerramento manual e a rotina administrativa de exclusão definitiva não foram incluídos como instruções operacionais porque ainda não foram confirmados no código analisado.</p>
+        </div>
+      ),
+    },
+    {
       id: "indicacoes",
-      titulo: "12. Profissionais indicados aos moradores",
+      titulo: "13. Profissionais indicados aos moradores",
       icone: <UserCircle className="w-5 h-5 text-teal-400" />,
       cor: "bg-teal-900/50",
       conteudo: (
@@ -225,7 +265,7 @@ export default function ManualSindicoPage() {
     },
     {
       id: "usuarios",
-      titulo: "13. Usuários, perfis e permissões",
+      titulo: "14. Usuários, perfis e permissões",
       icone: <Shield className="w-5 h-5 text-blue-400" />,
       cor: "bg-blue-900/50",
       conteudo: (
@@ -241,7 +281,7 @@ export default function ManualSindicoPage() {
     },
     {
       id: "config",
-      titulo: "14. Configurações do condomínio",
+      titulo: "15. Configurações do condomínio",
       icone: <Settings className="w-5 h-5 text-purple-400" />,
       cor: "bg-purple-900/50",
       conteudo: (
