@@ -253,100 +253,123 @@ export default function NovoClassificadoPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 px-4 py-6 text-white">
-      <div className="mx-auto max-w-3xl">
+    <main className="flex-1 w-full flex flex-col items-center px-4 pt-3 pb-4 md:px-12 md:pt-4 md:pb-8 bg-slate-900 min-h-screen text-white">
+      <div className="w-full max-w-4xl flex flex-col gap-3">
+
         <Link
           href="/classificados"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white"
+          className="inline-flex w-fit items-center gap-2 text-sm text-slate-400 transition hover:text-white"
         >
           <ArrowLeft size={18} />
           Voltar aos classificados
         </Link>
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Novo anúncio</h1>
-          <p className="mt-2 text-sm text-slate-400">
+        <div className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3">
+          <h1 className="text-xl font-bold text-white">
+            Novo anúncio
+          </h1>
+          <p className="mt-0.5 text-xs text-slate-400">
             Compartilhe uma oportunidade com os moradores do condomínio.
           </p>
         </div>
 
         {erro && (
-          <div className="mb-5 rounded-lg border border-red-700 bg-red-950/40 p-4 text-sm text-red-300">
+          <div className="rounded-lg border border-red-700 bg-red-950/40 px-3 py-2 text-sm text-red-300">
             {erro}
           </div>
         )}
 
         <form
           onSubmit={publicarAnuncio}
-          className="space-y-6 rounded-xl border border-slate-700 bg-slate-800 p-5 md:p-7"
+          className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-800 p-3 md:p-4"
         >
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              Categoria *
-            </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-300">
+                Categoria *
+              </label>
 
-            <select
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 p-3 text-white outline-none focus:border-blue-500"
-            >
-              {categorias.map((item) => (
-                <option key={item.valor} value={item.valor}>
-                  {item.nome}
-                </option>
-              ))}
-            </select>
+              <select
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+                className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+              >
+                {categorias.map((item) => (
+                  <option key={item.valor} value={item.valor}>
+                    {item.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-300">
+                Tipo de anúncio *
+              </label>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTipoAnuncio("oferta")}
+                  className={`rounded-lg border px-2 py-2.5 text-xs font-medium transition ${
+                    tipoAnuncio === "oferta"
+                      ? "border-blue-500 bg-blue-600 text-white"
+                      : "border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600"
+                  }`}
+                >
+                  Estou oferecendo
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTipoAnuncio("procura")}
+                  className={`rounded-lg border px-2 py-2.5 text-xs font-medium transition ${
+                    tipoAnuncio === "procura"
+                      ? "border-blue-500 bg-blue-600 text-white"
+                      : "border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600"
+                  }`}
+                >
+                  Estou procurando
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium">
-              Tipo de anúncio *
-            </label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-slate-300">
+                Título do anúncio *
+              </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setTipoAnuncio("oferta")}
-                className={`rounded-lg border p-3 text-sm font-medium ${
-                  tipoAnuncio === "oferta"
-                    ? "border-blue-500 bg-blue-600 text-white"
-                    : "border-slate-600 bg-slate-700 text-slate-300"
-                }`}
-              >
-                Estou oferecendo
-              </button>
+              <input
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                maxLength={100}
+                required
+                placeholder="Ex.: Vendo bicicleta em ótimo estado"
+                className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
+              />
+            </div>
 
-              <button
-                type="button"
-                onClick={() => setTipoAnuncio("procura")}
-                className={`rounded-lg border p-3 text-sm font-medium ${
-                  tipoAnuncio === "procura"
-                    ? "border-blue-500 bg-blue-600 text-white"
-                    : "border-slate-600 bg-slate-700 text-slate-300"
-                }`}
-              >
-                Estou procurando
-              </button>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-300">
+                Valor (R$)
+              </label>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                placeholder="A combinar"
+                className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
+              />
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">
-              Título do anúncio *
-            </label>
-
-            <input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              maxLength={100}
-              required
-              placeholder="Ex.: Vendo bicicleta em ótimo estado"
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 p-3 text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="mb-1 block text-xs font-medium text-slate-300">
               Descrição *
             </label>
 
@@ -355,39 +378,23 @@ export default function NovoClassificadoPage() {
               onChange={(e) => setDescricao(e.target.value)}
               maxLength={2000}
               required
-              rows={5}
+              rows={3}
               placeholder="Descreva seu produto, serviço ou o que está procurando..."
-              className="w-full resize-y rounded-lg border border-slate-600 bg-slate-700 p-3 text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
+              className="w-full resize-y rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
             />
 
-            <p className="mt-1 text-right text-xs text-slate-500">
+            <p className="mt-0.5 text-right text-[11px] text-slate-500">
               {descricao.length}/2000 caracteres
             </p>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">
-              Valor (R$)
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder="Deixe em branco se for a combinar"
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 p-3 text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="mb-1 block text-xs font-medium text-slate-300">
               Fotos (máximo 5)
             </label>
 
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-500 bg-slate-700/50 p-5 text-sm text-slate-300 transition hover:border-blue-500 hover:text-white">
-              <ImagePlus size={22} />
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-500 bg-slate-700/50 px-3 py-3 text-sm text-slate-300 transition hover:border-blue-500 hover:text-white">
+              <ImagePlus size={19} />
               Adicionar fotos
               <input
                 type="file"
@@ -398,28 +405,28 @@ export default function NovoClassificadoPage() {
               />
             </label>
 
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-500">
               JPG, PNG ou WEBP. Até 5 MB por foto.
             </p>
 
             {arquivos.length > 0 && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {arquivos.map((arquivo, indice) => (
                   <div
                     key={`${arquivo.name}-${indice}`}
                     className="flex items-center justify-between rounded-lg bg-slate-700 px-3 py-2"
                   >
-                    <span className="truncate pr-3 text-sm text-slate-300">
+                    <span className="truncate pr-3 text-xs text-slate-300">
                       {arquivo.name}
                     </span>
 
                     <button
                       type="button"
                       onClick={() => removerFoto(indice)}
-                      className="shrink-0 rounded p-1 text-red-400 hover:bg-slate-600"
+                      className="shrink-0 rounded p-1 text-red-400 transition hover:bg-slate-600"
                       aria-label="Remover foto"
                     >
-                      <X size={18} />
+                      <X size={17} />
                     </button>
                   </div>
                 ))}
@@ -427,12 +434,14 @@ export default function NovoClassificadoPage() {
             )}
           </div>
 
-          <div className="border-t border-slate-700 pt-5">
-            <h2 className="mb-4 font-semibold">Informações de contato</h2>
+          <div className="border-t border-slate-700 pt-3">
+            <h2 className="mb-2 text-sm font-semibold text-white">
+              Informações de contato
+            </h2>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium">
+                <label className="mb-1 block text-xs font-medium text-slate-300">
                   Nome para contato
                 </label>
 
@@ -441,12 +450,12 @@ export default function NovoClassificadoPage() {
                   onChange={(e) => setContatoNome(e.target.value)}
                   maxLength={100}
                   placeholder="Nome"
-                  className="w-full rounded-lg border border-slate-600 bg-slate-700 p-3 text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
+                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">
+                <label className="mb-1 block text-xs font-medium text-slate-300">
                   Telefone / WhatsApp
                 </label>
 
@@ -455,13 +464,13 @@ export default function NovoClassificadoPage() {
                   onChange={(e) => setContatoTelefone(e.target.value)}
                   maxLength={30}
                   placeholder="(00) 00000-0000"
-                  className="w-full rounded-lg border border-slate-600 bg-slate-700 p-3 text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
+                  className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
                 />
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-blue-900 bg-blue-950/30 p-4 text-sm text-blue-200">
+          <div className="rounded-lg border border-blue-900 bg-blue-950/30 px-3 py-2 text-xs text-blue-200">
             Seu anúncio seguirá a configuração de publicação definida pela
             administração do condomínio. Ele poderá ser publicado
             automaticamente ou aguardar aprovação.
@@ -470,16 +479,16 @@ export default function NovoClassificadoPage() {
           <button
             type="submit"
             disabled={salvando || !perfil}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 p-4 font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {salvando ? (
               <>
-                <Loader2 size={20} className="animate-spin" />
+                <Loader2 size={18} className="animate-spin" />
                 Publicando anúncio...
               </>
             ) : (
               <>
-                <Send size={19} />
+                <Send size={17} />
                 Publicar anúncio
               </>
             )}

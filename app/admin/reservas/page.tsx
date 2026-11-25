@@ -98,7 +98,7 @@ async function ReservasConteudo() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
-      <div className="w-full max-w-4xl mx-auto px-4 pt-3">
+      <div className="w-full max-w-4xl mx-auto px-4 md:px-0 pt-3">
         <Header
           showBackButton={true}
           backUrl="/admin"

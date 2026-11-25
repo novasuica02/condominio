@@ -114,7 +114,6 @@ export function ClassificadosLista({
     try {
       const supabase = createClient();
 
-      // Lista pública: somente anúncios ativos do condomínio.
       const {
         data: dadosPublicos,
         error: erroPublico,
@@ -131,7 +130,6 @@ export function ClassificadosLista({
 
       const listaPublica = (dadosPublicos ?? []) as unknown as Classificado[];
 
-      // Meus anúncios: todos os status pertencentes ao morador logado.
       const {
         data: dadosMeus,
         error: erroMeus,
@@ -146,7 +144,6 @@ export function ClassificadosLista({
 
       if (erroMeus) {
         console.error("Erro ao carregar meus anúncios:", erroMeus);
-
         setErroMeusAnuncios(
           "Não foi possível consultar seus anúncios. Verifique as permissões de acesso."
         );
@@ -157,7 +154,6 @@ export function ClassificadosLista({
       setAnuncios(listaPublica);
       setMeusAnuncios(listaMeus);
 
-      // Junta as duas listas para carregar as fotos sem repetir anúncios.
       const todosAnuncios = Array.from(
         new Map(
           [...listaPublica, ...listaMeus].map((anuncio) => [
@@ -190,10 +186,7 @@ export function ClassificadosLista({
       setFotos(fotosAssinadas);
     } catch (error) {
       console.error("Erro ao carregar classificados:", error);
-
-      setErro(
-        "Não foi possível carregar os classificados. Tente novamente."
-      );
+      setErro("Não foi possível carregar os classificados. Tente novamente.");
     } finally {
       setCarregando(false);
     }
@@ -203,7 +196,6 @@ export function ClassificadosLista({
     carregarAnuncios();
   }, [carregarAnuncios]);
 
-  // Renovação do anúncio expirado.
   async function renovarAnuncio(anuncioId: number) {
     setRenovandoId(anuncioId);
     setMensagemRenovacao("");
@@ -219,10 +211,7 @@ export function ClassificadosLista({
         }
       );
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       if (data === false) {
         throw new Error("A renovação não foi realizada.");
       }
@@ -234,7 +223,6 @@ export function ClassificadosLista({
       );
     } catch (error) {
       console.error("Erro ao renovar anúncio:", error);
-
       setErroRenovacao(
         error instanceof Error
           ? error.message
@@ -279,9 +267,7 @@ export function ClassificadosLista({
 
     const data = new Date(valor);
 
-    if (Number.isNaN(data.getTime())) {
-      return "Não definida";
-    }
+    if (Number.isNaN(data.getTime())) return "Não definida";
 
     return data.toLocaleDateString("pt-BR", {
       timeZone: "America/Sao_Paulo",
@@ -319,84 +305,82 @@ export function ClassificadosLista({
   }
 
   return (
-    <main className="flex-1 w-full text-white">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:py-8">
+    <main className="flex-1 w-full flex flex-col items-center px-4 pt-0 pb-4 md:px-12 md:pt-0 md:pb-12 bg-slate-900 min-h-screen text-white">
+      <div className="w-full max-w-4xl flex flex-col gap-3">
 
         {/* CABEÇALHO */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="flex items-center gap-2 text-xl font-bold sm:gap-3 sm:text-2xl">
+        <div className="rounded-xl border border-slate-700 bg-slate-800 p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="flex items-center gap-2 text-xl font-bold text-white">
+                {mostrarMeusAnuncios ? (
+                  <ClipboardList className="h-6 w-6 shrink-0 text-blue-400" />
+                ) : (
+                  <ShoppingBag className="h-6 w-6 shrink-0 text-blue-400" />
+                )}
+                {mostrarMeusAnuncios ? "Meus anúncios" : "Classificados"}
+              </h1>
+
+              <p className="mt-1 text-sm text-slate-400">
+                {mostrarMeusAnuncios
+                  ? "Acompanhe suas publicações e gerencie seus anúncios."
+                  : "Compre, venda, procure serviços e compartilhe oportunidades com os moradores."}
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               {mostrarMeusAnuncios ? (
-                <ClipboardList className="h-6 w-6 shrink-0 text-blue-400 sm:h-7 sm:w-7" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMostrarMeusAnuncios(false);
+                    setMensagemRenovacao("");
+                    setErroRenovacao("");
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-600"
+                >
+                  <ArrowLeft size={17} />
+                  Voltar aos Classificados
+                </button>
               ) : (
-                <ShoppingBag className="h-6 w-6 shrink-0 text-blue-400 sm:h-7 sm:w-7" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMostrarMeusAnuncios(true);
+                    setMensagemRenovacao("");
+                    setErroRenovacao("");
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-700 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-600"
+                >
+                  <ClipboardList size={17} />
+                  Meus anúncios
+                  {meusAnuncios.length > 0 && (
+                    <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs">
+                      {meusAnuncios.length}
+                    </span>
+                  )}
+                </button>
               )}
 
-              {mostrarMeusAnuncios ? "Meus anúncios" : "Classificados"}
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-              {mostrarMeusAnuncios
-                ? "Acompanhe suas publicações e gerencie seus anúncios."
-                : "Compre, venda, procure serviços e compartilhe oportunidades com os moradores."}
-            </p>
-          </div>
-
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            {mostrarMeusAnuncios ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setMostrarMeusAnuncios(false);
-                  setMensagemRenovacao("");
-                  setErroRenovacao("");
-                }}
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+              <Link
+                href="/classificados/novo"
+                className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
               >
-                <ArrowLeft size={18} />
-                Voltar aos Classificados
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setMostrarMeusAnuncios(true);
-                  setMensagemRenovacao("");
-                  setErroRenovacao("");
-                }}
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-              >
-                <ClipboardList size={18} />
-                Meus anúncios
-
-                {meusAnuncios.length > 0 && (
-                  <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs">
-                    {meusAnuncios.length}
-                  </span>
-                )}
-              </button>
-            )}
-
-            <Link
-              href="/classificados/novo"
-              className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
-            >
-              <Plus size={18} />
-              Novo anúncio
-            </Link>
+                <Plus size={17} />
+                Novo anúncio
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* ÁREA MEUS ANÚNCIOS */}
+        {/* MEUS ANÚNCIOS */}
         {mostrarMeusAnuncios ? (
-          <section className="rounded-2xl border border-slate-700 bg-slate-800/70 p-4 sm:p-5">
-
-            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <section className="rounded-xl border border-slate-700 bg-slate-800 p-4">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white sm:text-xl">
+                <h2 className="text-lg font-bold text-white">
                   Gerenciar minhas publicações
                 </h2>
-
                 <p className="mt-1 text-sm text-slate-400">
                   Consulte o estado dos seus anúncios e renove os que expiraram.
                 </p>
@@ -416,13 +400,13 @@ export function ClassificadosLista({
             </div>
 
             {mensagemRenovacao && (
-              <div className="mb-4 rounded-lg border border-green-700 bg-green-950/40 p-3 text-sm text-green-300">
+              <div className="mb-3 rounded-lg border border-green-700 bg-green-950/40 p-3 text-sm text-green-300">
                 {mensagemRenovacao}
               </div>
             )}
 
             {erroRenovacao && (
-              <div className="mb-4 rounded-lg border border-red-700 bg-red-950/40 p-3 text-sm text-red-300">
+              <div className="mb-3 rounded-lg border border-red-700 bg-red-950/40 p-3 text-sm text-red-300">
                 {erroRenovacao}
               </div>
             )}
@@ -432,21 +416,18 @@ export function ClassificadosLista({
                 {erroMeusAnuncios}
               </div>
             ) : carregando ? (
-              <div className="py-12 text-center text-sm text-slate-400">
+              <div className="py-10 text-center text-sm text-slate-400">
                 Carregando seus anúncios...
               </div>
             ) : meusAnuncios.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-600 bg-slate-900/40 p-6 text-center">
                 <Tag className="mx-auto mb-3 h-9 w-9 text-slate-500" />
-
                 <p className="font-medium text-slate-300">
                   Você ainda não possui anúncios.
                 </p>
-
                 <p className="mt-1 text-sm text-slate-400">
                   Seus anúncios aparecerão aqui depois da publicação.
                 </p>
-
                 <Link
                   href="/classificados/novo"
                   className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold hover:bg-blue-500"
@@ -456,60 +437,54 @@ export function ClassificadosLista({
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="flex flex-col gap-3">
                 {meusAnuncios.map((anuncio) => {
                   const statusInfo = formatarStatus(anuncio.status);
                   const linkEdicao = `/classificados/${anuncio.id}/editar`;
 
-                  // ANÚNCIO EXPIRADO: EDIÇÃO E RENOVAÇÃO SEPARADAS.
                   if (anuncio.status === "expirado") {
                     return (
                       <article
                         key={anuncio.id}
-                        className="overflow-hidden rounded-xl border-2 border-amber-500/70 bg-amber-950/30 shadow-lg shadow-black/10"
+                        className="overflow-hidden rounded-xl border-2 border-amber-500/70 bg-amber-950/30"
                       >
-                        <div className="flex items-center gap-2 border-b border-amber-700/50 bg-amber-900/30 px-4 py-3 sm:px-5">
-                          <AlertTriangle className="h-6 w-6 shrink-0 text-amber-400" />
-
-                          <h3 className="text-sm font-extrabold tracking-wide text-amber-300 sm:text-base">
+                        <div className="flex items-center gap-2 border-b border-amber-700/50 bg-amber-900/30 px-3 py-2.5">
+                          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
+                          <h3 className="text-sm font-extrabold tracking-wide text-amber-300">
                             ATENÇÃO — ANÚNCIO EXPIRADO
                           </h3>
                         </div>
 
-                        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
+                        <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:p-4">
                           {fotos[anuncio.id] && (
                             <img
                               src={fotos[anuncio.id]}
                               alt={anuncio.titulo}
-                              className="h-28 w-full shrink-0 rounded-lg object-cover sm:h-28 sm:w-32"
+                              className="h-28 w-full shrink-0 rounded-lg object-cover sm:w-32"
                             />
                           )}
 
                           <div className="min-w-0 flex-1">
-                            <h4 className="break-words text-lg font-bold text-white sm:text-xl">
+                            <h4 className="break-words text-lg font-bold text-white">
                               {anuncio.titulo}
                             </h4>
-
-                            <p className="mt-2 text-sm leading-relaxed text-amber-100/80">
+                            <p className="mt-1 text-sm leading-relaxed text-amber-100/80">
                               Seu anúncio expirou e não está mais visível para os demais moradores.
                             </p>
-
-                            <p className="mt-2 text-sm text-amber-200">
+                            <p className="mt-1 text-sm text-amber-200">
                               {formatarCategoria(anuncio.categoria)}
                             </p>
                           </div>
 
-                          <div className="w-full shrink-0 border-t border-amber-700/40 pt-4 sm:w-64 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+                          <div className="w-full shrink-0 border-t border-amber-700/40 pt-3 sm:w-60 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
                             <div className="mb-3">
                               <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">
                                 Será excluído em
                               </p>
-
-                              <p className="mt-1 flex items-center gap-2 text-xl font-extrabold text-amber-300">
-                                <Calendar size={19} />
+                              <p className="mt-1 flex items-center gap-2 text-lg font-extrabold text-amber-300">
+                                <Calendar size={18} />
                                 {formatarData(anuncio.exclusao_programada_em)}
                               </p>
-
                               <p className="mt-1 text-xs text-amber-100/70">
                                 Renove antes dessa data para manter seu anúncio.
                               </p>
@@ -518,9 +493,9 @@ export function ClassificadosLista({
                             <div className="flex flex-col gap-2">
                               <Link
                                 href={linkEdicao}
-                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-500/60 bg-blue-600/10 px-4 py-3 text-sm font-bold text-blue-300 transition hover:bg-blue-600 hover:text-white"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-500/60 bg-blue-600/10 px-3 py-2.5 text-sm font-bold text-blue-300 transition hover:bg-blue-600 hover:text-white"
                               >
-                                <Pencil size={17} />
+                                <Pencil size={16} />
                                 EDITAR ANÚNCIO
                               </Link>
 
@@ -531,17 +506,16 @@ export function ClassificadosLista({
                                   renovandoId === anuncio.id ||
                                   anuncio.exclusao_em_processamento
                                 }
-                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-3 text-sm font-extrabold text-white transition hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
                               >
                                 <RefreshCw
-                                  size={19}
+                                  size={18}
                                   className={
                                     renovandoId === anuncio.id
                                       ? "animate-spin"
                                       : ""
                                   }
                                 />
-
                                 {anuncio.exclusao_em_processamento
                                   ? "Exclusão em processamento"
                                   : renovandoId === anuncio.id
@@ -555,11 +529,10 @@ export function ClassificadosLista({
                     );
                   }
 
-                  // DEMAIS ANÚNCIOS DO MORADOR.
                   return (
                     <article
                       key={anuncio.id}
-                      className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-4 sm:flex-row sm:items-center"
+                      className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-3 sm:flex-row sm:items-center"
                     >
                       {fotos[anuncio.id] ? (
                         <img
@@ -574,13 +547,12 @@ export function ClassificadosLista({
                       )}
 
                       <div className="min-w-0 flex-1">
-                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <div className="mb-1.5 flex flex-wrap items-center gap-2">
                           <span
-                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusInfo.classe}`}
+                            className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${statusInfo.classe}`}
                           >
                             {statusInfo.nome}
                           </span>
-
                           <span className="text-xs text-slate-400">
                             {formatarCategoria(anuncio.categoria)}
                           </span>
@@ -605,7 +577,7 @@ export function ClassificadosLista({
 
                         {anuncio.status === "rejeitado" &&
                           anuncio.motivo_rejeicao && (
-                            <p className="mt-2 break-words text-xs text-red-300">
+                            <p className="mt-1 break-words text-xs text-red-300">
                               Motivo: {anuncio.motivo_rejeicao}
                             </p>
                           )}
@@ -617,13 +589,12 @@ export function ClassificadosLista({
                         )}
                       </div>
 
-                      <div className="flex w-full shrink-0 flex-col gap-3 sm:w-44">
+                      <div className="flex w-full shrink-0 flex-col gap-2 sm:w-40">
                         <div className="text-left sm:text-right">
                           <p className="text-base font-bold text-green-400">
                             {formatarValor(anuncio.valor)}
                           </p>
-
-                          <p className="mt-1 text-xs text-slate-400">
+                          <p className="mt-0.5 text-xs text-slate-400">
                             {anuncio.tipo_anuncio === "procura"
                               ? "Procurando"
                               : "Oferecendo"}
@@ -632,7 +603,7 @@ export function ClassificadosLista({
 
                         <Link
                           href={linkEdicao}
-                          className="flex items-center justify-center gap-2 rounded-lg border border-blue-500/60 bg-blue-600/10 px-3 py-2.5 text-sm font-semibold text-blue-300 transition hover:bg-blue-600 hover:text-white"
+                          className="flex items-center justify-center gap-2 rounded-lg border border-blue-500/60 bg-blue-600/10 px-3 py-2 text-sm font-semibold text-blue-300 transition hover:bg-blue-600 hover:text-white"
                         >
                           <Pencil size={16} />
                           EDITAR ANÚNCIO
@@ -647,25 +618,24 @@ export function ClassificadosLista({
         ) : (
           <>
             {/* BUSCA E CATEGORIAS */}
-            <div className="mb-6 rounded-xl border border-slate-700 bg-slate-800 p-3 sm:p-4">
-              <div className="relative mb-4">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 p-3">
+              <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-
                 <input
                   type="text"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   placeholder="O que você está procurando?"
-                  className="w-full min-w-0 rounded-lg border border-slate-600 bg-slate-700 py-3 pl-10 pr-4 text-sm text-white outline-none placeholder:text-slate-400 focus:border-blue-500 sm:text-base"
+                  className="w-full min-w-0 rounded-lg border border-slate-600 bg-slate-700 py-2.5 pl-10 pr-4 text-sm text-white outline-none placeholder:text-slate-400 focus:border-blue-500"
                 />
               </div>
 
-              <div className="flex w-full flex-nowrap gap-2 overflow-x-auto overflow-y-hidden pb-2">
+              <div className="flex w-full flex-nowrap gap-2 overflow-x-auto overflow-y-hidden pb-1">
                 {categorias.map((item) => (
                   <button
                     key={item.valor}
                     onClick={() => setCategoria(item.valor)}
-                    className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs transition sm:text-sm ${
+                    className={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-xs transition ${
                       categoria === item.valor
                         ? "bg-blue-600 text-white"
                         : "bg-slate-700 text-slate-300 hover:bg-slate-600"
@@ -678,7 +648,7 @@ export function ClassificadosLista({
             </div>
 
             {/* QUANTIDADE E ATUALIZAÇÃO */}
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-slate-400 sm:text-sm">
                 {anunciosFiltrados.length} anúncio(s) encontrado(s)
               </p>
@@ -696,15 +666,14 @@ export function ClassificadosLista({
               </button>
             </div>
 
-            {/* LISTA PÚBLICA DE CLASSIFICADOS */}
+            {/* LISTA PÚBLICA */}
             {carregando ? (
-              <div className="py-16 text-center text-sm text-slate-400">
+              <div className="py-12 text-center text-sm text-slate-400">
                 Carregando classificados...
               </div>
             ) : erro ? (
-              <div className="rounded-xl border border-red-800 bg-red-950/40 p-6 text-center text-sm text-red-300">
+              <div className="rounded-xl border border-red-800 bg-red-950/40 p-5 text-center text-sm text-red-300">
                 {erro}
-
                 <button
                   onClick={carregarAnuncios}
                   className="mt-3 block w-full text-sm underline"
@@ -713,33 +682,30 @@ export function ClassificadosLista({
                 </button>
               </div>
             ) : anunciosFiltrados.length === 0 ? (
-              <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 text-center sm:p-10">
-                <Tag className="mx-auto mb-4 h-12 w-12 text-slate-500" />
-
+              <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 text-center">
+                <Tag className="mx-auto mb-3 h-10 w-10 text-slate-500" />
                 <h2 className="text-lg font-semibold">
                   Nenhum anúncio encontrado
                 </h2>
-
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-400">
                   Seja o primeiro a publicar um anúncio para os moradores!
                 </p>
-
                 <Link
                   href="/classificados/novo"
-                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold hover:bg-blue-500"
+                  className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold hover:bg-blue-500"
                 >
-                  <Plus size={18} />
+                  <Plus size={17} />
                   Criar anúncio
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
                 {anunciosFiltrados.map((anuncio) => (
                   <article
                     key={anuncio.id}
                     className="min-w-0 overflow-hidden rounded-xl border border-slate-700 bg-slate-800 transition hover:border-slate-500"
                   >
-                    <div className="relative flex h-44 items-center justify-center bg-slate-700 sm:h-48">
+                    <div className="relative flex h-40 items-center justify-center bg-slate-700 sm:h-44">
                       {fotos[anuncio.id] ? (
                         <img
                           src={fotos[anuncio.id]}
@@ -748,7 +714,7 @@ export function ClassificadosLista({
                         />
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-slate-500">
-                          <ImageIcon size={38} />
+                          <ImageIcon size={34} />
                           <span className="text-xs">Sem foto</span>
                         </div>
                       )}
@@ -758,8 +724,8 @@ export function ClassificadosLista({
                       </span>
                     </div>
 
-                    <div className="p-4">
-                      <p className="mb-2 text-xs uppercase tracking-wide text-blue-400">
+                    <div className="p-3">
+                      <p className="mb-1.5 text-xs uppercase tracking-wide text-blue-400">
                         {anuncio.tipo_anuncio === "procura"
                           ? "Procurando"
                           : "Oferecendo"}
@@ -769,17 +735,17 @@ export function ClassificadosLista({
                         {anuncio.titulo}
                       </h2>
 
-                      <p className="mt-2 line-clamp-3 min-h-[60px] break-words text-sm text-slate-400">
+                      <p className="mt-1.5 line-clamp-3 min-h-[60px] break-words text-sm text-slate-400">
                         {anuncio.descricao}
                       </p>
 
-                      <div className="mt-4 border-t border-slate-700 pt-3">
+                      <div className="mt-3 border-t border-slate-700 pt-3">
                         <p className="text-lg font-bold text-green-400">
                           {formatarValor(anuncio.valor)}
                         </p>
 
                         {anuncio.contato_nome && (
-                          <p className="mt-2 break-words text-xs text-slate-400">
+                          <p className="mt-1.5 break-words text-xs text-slate-400">
                             Contato: {anuncio.contato_nome}
                           </p>
                         )}

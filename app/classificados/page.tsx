@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -33,12 +32,14 @@ async function ClassificadosContent() {
 
   return (
     <div className="flex-1 w-full flex flex-col min-h-screen bg-slate-900">
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-4">
-        <Header
-          showBackButton={true}
-          backUrl="/protected"
-          backText="Menu"
-        />
+      <div className="w-full flex flex-col items-center px-4 pt-2 pb-0 md:px-12 md:pt-4 md:pb-0">
+        <div className="w-full max-w-4xl">
+          <Header
+            showBackButton={true}
+            backUrl="/protected"
+            backText="Menu"
+          />
+        </div>
       </div>
 
       <ClassificadosLista

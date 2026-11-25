@@ -2,11 +2,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
 import {
-  ArrowLeft,
   Plus,
   Pencil,
   X,
@@ -245,7 +243,7 @@ export default function AreasComunsClient({
 
     setAreas((atuais) =>
       atuais.map((item) =>
-        item.id === area.id ? { ...item, ativo: !item.ativo } : item
+        item.id === area.id ? { ...item, ativo: !area.ativo } : item
       )
     );
 
@@ -260,216 +258,237 @@ export default function AreasComunsClient({
     return modalidade;
   };
 
+  const totalAtivas = areas.filter((area) => area.ativo).length;
+  const totalInativas = areas.filter((area) => !area.ativo).length;
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-4 py-8 md:px-8">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6"
-        >
-          <ArrowLeft size={18} />
-          Voltar para Gestão
-        </Link>
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Áreas Comuns
-            </h1>
-            <p className="text-slate-400 mt-2">
-              Cadastre e configure os espaços do condomínio.
-            </p>
-          </div>
-
-          <button
-            onClick={abrirCadastro}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-5 py-3 font-semibold transition"
-          >
-            <Plus size={19} />
-            Nova área
-          </button>
+    <div className="min-h-screen bg-slate-900 text-white">
+      {/* Header global */}
+      <div className="w-full flex flex-col items-center px-4 pt-2 pb-0 md:px-12 md:pt-4 md:pb-0">
+        <div className="w-full max-w-4xl">
+          <Header
+            showBackButton={true}
+            backUrl="/admin"
+            backText="Voltar"
+          />
         </div>
+      </div>
 
-        {mensagem && (
-          <div className="mb-5 rounded-xl border border-emerald-700 bg-emerald-950/40 p-4 text-emerald-300">
-            {mensagem}
-          </div>
-        )}
+      <main className="flex-1 w-full flex flex-col items-center px-4 pt-0 pb-4 md:px-12 md:pt-0 md:pb-12 bg-slate-900 min-h-screen">
+        <div className="w-full max-w-4xl flex flex-col gap-3 text-white">
 
-        {erro && !modalAberto && (
-          <div className="mb-5 rounded-xl border border-red-700 bg-red-950/40 p-4 text-red-300">
-            {erro}
-          </div>
-        )}
+          {/* Cabeçalho e resumo */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 shrink-0">
+                <Building2 size={20} />
+              </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <Building2 className="text-blue-400 mb-3" size={24} />
-            <p className="text-slate-400 text-sm">Total de áreas</p>
-            <p className="text-2xl font-bold">{areas.length}</p>
-          </div>
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold leading-tight">
+                  Áreas Comuns
+                </h1>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <CheckCircle2 className="text-emerald-400 mb-3" size={24} />
-            <p className="text-slate-400 text-sm">Áreas ativas</p>
-            <p className="text-2xl font-bold">
-              {areas.filter((area) => area.ativo).length}
-            </p>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <XCircle className="text-slate-500 mb-3" size={24} />
-            <p className="text-slate-400 text-sm">Áreas inativas</p>
-            <p className="text-2xl font-bold">
-              {areas.filter((area) => !area.ativo).length}
-            </p>
-          </div>
-        </div>
-
-        {areas.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center">
-            <Building2 size={42} className="mx-auto text-slate-600 mb-4" />
-            <h2 className="text-xl font-semibold mb-2">
-              Nenhuma área cadastrada
-            </h2>
-            <p className="text-slate-400 mb-5">
-              Comece cadastrando a primeira área comum do condomínio.
-            </p>
-            <button
-              onClick={abrirCadastro}
-              className="rounded-xl bg-blue-600 hover:bg-blue-500 px-5 py-3 font-semibold"
-            >
-              Cadastrar primeira área
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {areas.map((area) => (
-              <div
-                key={area.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-6"
-              >
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400">
-                    <Building2 size={25} />
-                  </div>
-
-                  <span
-                    className={`text-xs px-3 py-1 rounded-full ${
-                      area.ativo
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-slate-700 text-slate-300"
-                    }`}
-                  >
-                    {area.ativo ? "Ativa" : "Inativa"}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-400">
+                  <span>
+                    Total: <strong className="text-white">{areas.length}</strong>
+                  </span>
+                  <span>
+                    Ativas: <strong className="text-emerald-400">{totalAtivas}</strong>
+                  </span>
+                  <span>
+                    Inativas: <strong className="text-slate-300">{totalInativas}</strong>
                   </span>
                 </div>
-
-                <h2 className="text-xl font-bold">{area.nome}</h2>
-
-                {area.descricao && (
-                  <p className="text-sm text-slate-400 mt-2">
-                    {area.descricao}
-                  </p>
-                )}
-
-                <div className="mt-5 space-y-3 text-sm text-slate-300">
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Modalidade</span>
-                    <span>{modalidadeTexto(area.modalidade)}</span>
-                  </div>
-
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500 flex items-center gap-2">
-                      <Users size={15} /> Capacidade
-                    </span>
-                    <span>
-                      {area.capacidade_maxima ?? "Não definida"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500 flex items-center gap-2">
-                      <CalendarDays size={15} /> Limite mensal/unidade
-                    </span>
-                    <span>{area.limite_mensal_unidade}</span>
-                  </div>
-
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Taxa</span>
-                    <span>
-                      {Number(area.taxa_utilizacao).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Aprovação</span>
-                    <span>
-                      {area.exige_aprovacao_padrao ? "Obrigatória" : "Padrão"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between gap-3">
-                    <span className="text-slate-500">Check-in</span>
-                    <span>
-                      {area.checkin_obrigatorio ? "Obrigatório" : "Não"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-6 pt-5 border-t border-slate-800">
-                  <button
-                    onClick={() => abrirEdicao(area)}
-                    disabled={carregando}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-2 text-sm disabled:opacity-50"
-                  >
-                    <Pencil size={16} />
-                    Editar
-                  </button>
-
-                  <button
-                    onClick={() => alternarAtivacao(area)}
-                    disabled={carregando}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-2 text-sm disabled:opacity-50"
-                  >
-                    <Power size={16} />
-                    {area.ativo ? "Desativar" : "Ativar"}
-                  </button>
-                </div>
               </div>
-            ))}
+            </div>
+
+            <button
+              onClick={abrirCadastro}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-sm font-semibold transition shrink-0"
+            >
+              <Plus size={17} />
+              Nova área
+            </button>
           </div>
-        )}
+
+          {/* Mensagens */}
+          {mensagem && (
+            <div className="rounded-lg border border-emerald-700 bg-emerald-950/40 p-3 text-sm text-emerald-300">
+              {mensagem}
+            </div>
+          )}
+
+          {erro && !modalAberto && (
+            <div className="rounded-lg border border-red-700 bg-red-950/40 p-3 text-sm text-red-300">
+              {erro}
+            </div>
+          )}
+
+          {/* Lista de áreas */}
+          {areas.length === 0 ? (
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 text-center">
+              <Building2 size={36} className="mx-auto text-slate-500 mb-3" />
+              <h2 className="text-lg font-semibold mb-2">
+                Nenhuma área cadastrada
+              </h2>
+              <p className="text-sm text-slate-400 mb-4">
+                Comece cadastrando a primeira área comum do condomínio.
+              </p>
+              <button
+                onClick={abrirCadastro}
+                className="rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-sm font-semibold"
+              >
+                Cadastrar primeira área
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {areas.map((area) => (
+                <div
+                  key={area.id}
+                  className="bg-slate-800 border border-slate-700 rounded-xl p-4"
+                >
+                  {/* Nome e situação */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 shrink-0">
+                        <Building2 size={19} />
+                      </div>
+
+                      <div className="min-w-0">
+                        <h2 className="font-bold text-base leading-tight break-words">
+                          {area.nome}
+                        </h2>
+                        <span
+                          className={`inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full ${
+                            area.ativo
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-slate-700 text-slate-300"
+                          }`}
+                        >
+                          {area.ativo ? "Ativa" : "Inativa"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {area.descricao && (
+                    <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+                      {area.descricao}
+                    </p>
+                  )}
+
+                  {/* Informações da área */}
+                  <div className="mt-3 pt-3 border-t border-slate-700 space-y-2 text-xs">
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-400">Modalidade</span>
+                      <span className="text-slate-200 text-right">
+                        {modalidadeTexto(area.modalidade)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-400 flex items-center gap-1.5">
+                        <Users size={13} /> Capacidade
+                      </span>
+                      <span className="text-slate-200 text-right">
+                        {area.capacidade_maxima ?? "Não definida"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-400 flex items-center gap-1.5">
+                        <CalendarDays size={13} /> Limite mensal/unidade
+                      </span>
+                      <span className="text-slate-200 text-right">
+                        {area.limite_mensal_unidade}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-400">Taxa</span>
+                      <span className="text-slate-200 text-right">
+                        {Number(area.taxa_utilizacao).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-400">Aprovação</span>
+                      <span className="text-slate-200 text-right">
+                        {area.exige_aprovacao_padrao ? "Obrigatória" : "Padrão"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+                      <span className="text-slate-400">Check-in</span>
+                      <span className="text-slate-200 text-right">
+                        {area.checkin_obrigatorio ? "Obrigatório" : "Não"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Ações */}
+                  <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-700">
+                    <button
+                      onClick={() => abrirEdicao(area)}
+                      disabled={carregando}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 px-2 py-2 text-xs font-medium disabled:opacity-50"
+                    >
+                      <Pencil size={14} />
+                      Editar
+                    </button>
+
+                    <button
+                      onClick={() => alternarAtivacao(area)}
+                      disabled={carregando}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 px-2 py-2 text-xs font-medium disabled:opacity-50"
+                    >
+                      <Power size={14} />
+                      {area.ativo ? "Desativar" : "Ativar"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
+      {/* Modal de cadastro e edição */}
       {modalAberto && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl my-8">
-            <div className="flex items-center justify-between p-5 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-xl my-auto max-h-[94dvh] flex flex-col">
+
+            {/* Cabeçalho do modal */}
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-700 shrink-0">
               <div>
-                <h2 className="text-xl font-bold">
+                <h2 className="text-lg font-bold">
                   {areaEditando !== null ? "Editar área" : "Nova área comum"}
                 </h2>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Configure as características e regras de utilização.
                 </p>
               </div>
 
               <button
                 onClick={limparFormulario}
-                className="text-slate-400 hover:text-white"
+                disabled={carregando}
+                className="text-slate-400 hover:text-white p-1 disabled:opacity-50"
                 aria-label="Fechar"
               >
-                <X size={22} />
+                <X size={21} />
               </button>
             </div>
 
-            <form onSubmit={salvarArea} className="p-5 space-y-5">
+            {/* Formulário com rolagem */}
+            <form
+              onSubmit={salvarArea}
+              className="p-4 space-y-4 overflow-y-auto"
+            >
               {erro && (
                 <div className="rounded-lg border border-red-700 bg-red-950/40 p-3 text-sm text-red-300">
                   {erro}
@@ -477,7 +496,7 @@ export default function AreasComunsClient({
               )}
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
                   Nome da área *
                 </label>
                 <input
@@ -485,31 +504,31 @@ export default function AreasComunsClient({
                   value={formulario.nome}
                   onChange={(e) => atualizarCampo("nome", e.target.value)}
                   placeholder="Ex.: Salão de festas"
-                  className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3 outline-none focus:border-blue-500"
+                  className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
                   Descrição
                 </label>
                 <textarea
                   value={formulario.descricao}
                   onChange={(e) => atualizarCampo("descricao", e.target.value)}
-                  rows={3}
+                  rows={2}
                   placeholder="Informações sobre a área..."
-                  className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3 outline-none focus:border-blue-500"
+                  className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm outline-none focus:border-blue-500 resize-y"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
                   Modalidade de utilização *
                 </label>
                 <select
                   value={formulario.modalidade}
                   onChange={(e) => atualizarCampo("modalidade", e.target.value)}
-                  className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3 outline-none focus:border-blue-500"
+                  className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                 >
                   <option value="reserva">Com reserva</option>
                   <option value="livre">Uso livre</option>
@@ -517,23 +536,25 @@ export default function AreasComunsClient({
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
                     Capacidade máxima
                   </label>
                   <input
                     type="number"
                     min="1"
                     value={formulario.capacidade_maxima}
-                    onChange={(e) => atualizarCampo("capacidade_maxima", e.target.value)}
+                    onChange={(e) =>
+                      atualizarCampo("capacidade_maxima", e.target.value)
+                    }
                     placeholder="Não definida"
-                    className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3"
+                    className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
                     Limite mensal por unidade *
                   </label>
                   <input
@@ -541,13 +562,15 @@ export default function AreasComunsClient({
                     type="number"
                     min="0"
                     value={formulario.limite_mensal_unidade}
-                    onChange={(e) => atualizarCampo("limite_mensal_unidade", e.target.value)}
-                    className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3"
+                    onChange={(e) =>
+                      atualizarCampo("limite_mensal_unidade", e.target.value)
+                    }
+                    className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
                     Prazo de cancelamento (horas) *
                   </label>
                   <input
@@ -555,13 +578,15 @@ export default function AreasComunsClient({
                     type="number"
                     min="0"
                     value={formulario.prazo_cancelamento_horas}
-                    onChange={(e) => atualizarCampo("prazo_cancelamento_horas", e.target.value)}
-                    className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3"
+                    onChange={(e) =>
+                      atualizarCampo("prazo_cancelamento_horas", e.target.value)
+                    }
+                    className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
                     Antecedência máxima (dias) *
                   </label>
                   <input
@@ -569,13 +594,15 @@ export default function AreasComunsClient({
                     type="number"
                     min="0"
                     value={formulario.antecedencia_maxima_dias}
-                    onChange={(e) => atualizarCampo("antecedencia_maxima_dias", e.target.value)}
-                    className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3"
+                    onChange={(e) =>
+                      atualizarCampo("antecedencia_maxima_dias", e.target.value)
+                    }
+                    className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
                     Taxa de utilização (R$) *
                   </label>
                   <input
@@ -584,31 +611,38 @@ export default function AreasComunsClient({
                     min="0"
                     step="0.01"
                     value={formulario.taxa_utilizacao}
-                    onChange={(e) => atualizarCampo("taxa_utilizacao", e.target.value)}
-                    className="w-full rounded-lg bg-slate-950 border border-slate-700 px-4 py-3"
+                    onChange={(e) =>
+                      atualizarCampo("taxa_utilizacao", e.target.value)
+                    }
+                    className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2.5 text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-4 rounded-xl bg-slate-950 border border-slate-800 p-4">
-                <label className="flex items-center gap-3 cursor-pointer">
+              {/* Regras adicionais */}
+              <div className="space-y-3 rounded-lg bg-slate-900 border border-slate-700 p-3">
+                <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formulario.exige_aprovacao_padrao}
-                    onChange={(e) => atualizarCampo("exige_aprovacao_padrao", e.target.checked)}
-                    className="w-4 h-4 accent-blue-500"
+                    onChange={(e) =>
+                      atualizarCampo("exige_aprovacao_padrao", e.target.checked)
+                    }
+                    className="w-4 h-4 mt-0.5 accent-blue-500 shrink-0"
                   />
                   <span className="text-sm">
                     Exigir aprovação para reservas por padrão
                   </span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-start gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formulario.checkin_obrigatorio}
-                    onChange={(e) => atualizarCampo("checkin_obrigatorio", e.target.checked)}
-                    className="w-4 h-4 accent-blue-500"
+                    onChange={(e) =>
+                      atualizarCampo("checkin_obrigatorio", e.target.checked)
+                    }
+                    className="w-4 h-4 mt-0.5 accent-blue-500 shrink-0"
                   />
                   <span className="text-sm">
                     Exigir registro de entrada (check-in)
@@ -616,12 +650,13 @@ export default function AreasComunsClient({
                 </label>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-3 border-t border-slate-800">
+              {/* Botões */}
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-slate-700">
                 <button
                   type="button"
                   onClick={limparFormulario}
                   disabled={carregando}
-                  className="rounded-lg bg-slate-800 hover:bg-slate-700 px-5 py-3"
+                  className="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2.5 text-sm disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -629,12 +664,12 @@ export default function AreasComunsClient({
                 <button
                   type="submit"
                   disabled={carregando}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-5 py-3 font-semibold disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
                 >
                   {carregando ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={17} className="animate-spin" />
                   ) : (
-                    <Save size={18} />
+                    <Save size={17} />
                   )}
                   {carregando ? "Salvando..." : "Salvar área"}
                 </button>
