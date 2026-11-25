@@ -12,6 +12,9 @@ import {
   Shield,
   Phone,
   ShoppingBag,
+  Store,
+  CalendarDays,
+  CalendarPlus,
 } from "lucide-react";
 import Header from "@/components/Header";
 
@@ -31,6 +34,7 @@ async function PainelContent() {
 
   const isSindico =
     profile?.role === "sindico" || profile?.role === "subsindico";
+
   const isPrestador = profile?.role === "prestador";
 
   if (isPrestador) {
@@ -58,6 +62,7 @@ async function PainelContent() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
 
+          {/* Mural de Avisos */}
           <Link href="/avisos" className="group">
             <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-blue-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-900/50 text-blue-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -72,6 +77,7 @@ async function PainelContent() {
             </div>
           </Link>
 
+          {/* Chamados */}
           <Link href="/chamados" className="group">
             <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-orange-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-orange-900/50 text-orange-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -86,6 +92,7 @@ async function PainelContent() {
             </div>
           </Link>
 
+          {/* Classificados */}
           <Link href="/classificados" className="group">
             <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-amber-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-amber-900/50 text-amber-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -100,6 +107,7 @@ async function PainelContent() {
             </div>
           </Link>
 
+          {/* Documentos */}
           <Link href="/documentos" className="group">
             <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-900/50 text-emerald-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -114,6 +122,7 @@ async function PainelContent() {
             </div>
           </Link>
 
+          {/* Profissionais indicados */}
           <Link href="/profissionais" className="group">
             <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-teal-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-teal-900/50 text-teal-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -128,6 +137,7 @@ async function PainelContent() {
             </div>
           </Link>
 
+          {/* Moradores */}
           <Link href="/moradores" className="group">
             <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-slate-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-700 text-slate-300 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -142,6 +152,7 @@ async function PainelContent() {
             </div>
           </Link>
 
+          {/* Meu Perfil */}
           <Link href="/perfil" className="group">
             <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-purple-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-900/50 text-purple-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -156,6 +167,40 @@ async function PainelContent() {
             </div>
           </Link>
 
+          {/* Áreas Comuns */}
+          <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-cyan-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-cyan-900/50 text-cyan-400 rounded-full flex items-center justify-center mb-3">
+              <CalendarDays className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+
+            <h2 className="text-sm sm:text-base font-bold mb-1 text-white leading-tight">
+              Áreas Comuns
+            </h2>
+
+            <p className="text-[10px] sm:text-xs text-slate-400 hidden sm:block mb-3">
+              Agenda e reservas
+            </p>
+
+            <div className="flex w-full gap-2 mt-1">
+              <Link
+                href="/protected/agenda"
+                className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-1.5 py-2 text-[10px] sm:text-xs font-semibold transition-colors"
+              >
+                <CalendarDays className="w-4 h-4" />
+                Agenda
+              </Link>
+
+              <Link
+                href="/protected/reservas"
+                className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 rounded-lg bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700 px-1.5 py-2 text-[10px] sm:text-xs font-semibold transition-colors"
+              >
+                <CalendarPlus className="w-4 h-4" />
+                Reservar
+              </Link>
+            </div>
+          </div>
+
+          {/* Acessos administrativos */}
           {isSindico && (
             <>
               <Link href="/admin" className="group">
@@ -168,6 +213,20 @@ async function PainelContent() {
                   </h2>
                   <p className="text-[10px] sm:text-xs text-slate-400 hidden sm:block">
                     Acessos e permissões
+                  </p>
+                </div>
+              </Link>
+
+              <Link href="/prestadores" className="group">
+                <div className="bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-700 shadow-sm hover:border-teal-500 hover:shadow-md transition-all h-full flex flex-col items-center text-center justify-center">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-teal-900/50 text-teal-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Store className="w-6 h-6 sm:w-7 sm:h-7" />
+                  </div>
+                  <h2 className="text-sm sm:text-base font-bold mb-1 text-white leading-tight">
+                    Prestadores
+                  </h2>
+                  <p className="text-[10px] sm:text-xs text-slate-400 hidden sm:block">
+                    Cadastro e responsáveis
                   </p>
                 </div>
               </Link>
@@ -187,7 +246,6 @@ async function PainelContent() {
               </Link>
             </>
           )}
-
         </div>
       </main>
     </div>

@@ -1,93 +1,171 @@
+
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ShieldAlert, User, Shield, Settings } from "lucide-react";
-import GerenciarUsuario from "./gerenciar";
 import Header from "@/components/Header";
+import {
+  Building2,
+  Users,
+  Layers,
+  Clock,
+  CalendarCheck,
+  CalendarDays,
+  Wrench,
+  Settings,
+  Megaphone,
+  ChevronRight,
+  ShieldAlert,
+} from "lucide-react";
 
-async function ListaUsuarios() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) redirect("/auth/login");
-
-  const { data: myProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (myProfile?.role !== "sindico") redirect("/protected");
-
-  const { data: perfis } = await supabase.from("profiles").select("*").order("nome");
-
-  return (
-    <div className="w-full flex flex-col gap-4">
-      {perfis?.map((p) => (
-        <div key={p.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${p.role === 'sindico' ? 'bg-blue-900/50 text-blue-400' : p.role === 'prestador' ? 'bg-teal-900/50 text-teal-400' : 'bg-slate-700 text-slate-400'}`}>
-              {p.role === 'sindico' ? <Shield className="w-5 h-5" /> : <User className="w-5 h-5" />}
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">{p.nome || "Sem nome"}</h3>
-              <p className="text-sm text-slate-400">{p.unidade || "Sem unidade"} • {p.role.toUpperCase()}</p>
-            </div>
-          </div>
-          
-          {/* Mostra o botão apenas se NÃO for o próprio usuário logado */}
-          {user.id !== p.id && (
-            <GerenciarUsuario id={p.id} roleAtual={p.role} />
-          )}
-        </div>
-      ))}
-      {perfis?.length === 0 && <p className="text-center text-slate-400 p-8">Nenhum usuário encontrado.</p>}
-    </div>
-  );
-}
-
-async function AdminHeader() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return null;
-
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "sindico") return null;
-
-  return (
-    <div className="flex flex-col gap-4">
-      <Header />
-      
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-sm">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-          <ShieldAlert className="w-8 h-8 text-blue-500" /> Gestão de Acessos
-        </h1>
-        
-        <div className="flex flex-wrap gap-2">
-          <Link href="/admin/condominio">
-            <Button className="bg-blue-600 hover:bg-blue-500 text-white">
-              <Settings className="w-4 h-4 mr-2" /> Dados do Condomínio
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
+const opcoesGestao = [
+  {
+    titulo: "Condomínio",
+    descricao: "Dados e informações do condomínio",
+    href: "/admin/condominio",
+    icone: Building2,
+  },
+  {
+    titulo: "Moradores",
+    descricao: "Gerenciar moradores e cargos",
+    href: "/admin/moradores",
+    icone: Users,
+  },
+  {
+    titulo: "Áreas Comuns",
+    descricao: "Cadastrar e gerenciar áreas comuns",
+    href: "/admin/areas-comuns",
+    icone: Layers,
+  },
+  {
+    titulo: "Horários e Períodos",
+    descricao: "Configurar horários e períodos de utilização",
+    href: "/admin/periodos",
+    icone: Clock,
+  },
+  {
+    titulo: "Reservas",
+    descricao: "Acompanhar e administrar reservas",
+    href: "/admin/reservas",
+    icone: CalendarCheck,
+  },
+  {
+    titulo: "Agenda",
+    descricao: "Visualizar eventos e atividades do condomínio",
+    href: "/admin/agenda",
+    icone: CalendarDays,
+  },
+  {
+    titulo: "Prestadores",
+    descricao: "Gerenciar prestadores de serviços",
+    href: "/prestadores",
+    icone: Wrench,
+  },
+  {
+    titulo: "Avisos e Comunicados",
+    descricao: "Publicar avisos e comunicados",
+    href: "/admin/comunicados",
+    icone: Megaphone,
+  },
+  {
+    titulo: "Configurações Gerais",
+    descricao: "Configurações e regras do condomínio",
+    href: "/admin/configuracoes",
+    icone: Settings,
+  },
+];
 
 export default function AdminPage() {
   return (
+    <Suspense fallback={<CarregandoGestao />}>
+      <AdminConteudo />
+    </Suspense>
+  );
+}
+
+function CarregandoGestao() {
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-300">
+      Carregando gestão do condomínio...
+    </div>
+  );
+}
+
+async function AdminConteudo() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("role, condominio_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!perfil || !["sindico", "subsindico"].includes(perfil.role)) {
+    redirect("/protected");
+  }
+
+  return (
     <div className="flex-1 w-full flex flex-col items-center p-4 md:p-12 bg-slate-900 min-h-screen">
       <div className="w-full max-w-4xl flex flex-col gap-6">
-        <Suspense fallback={<div className="h-24 animate-pulse bg-slate-800 rounded-xl"></div>}>
-          <AdminHeader />
-        </Suspense>
-        
-        <p className="text-slate-400 text-sm">
-          Promova moradores a síndicos, gerencie prestadores ou atualize os dados do condomínio.
-        </p>
+        <Header />
 
-        <Suspense fallback={<div className="animate-pulse text-slate-400 p-8 text-center">Carregando usuários...</div>}>
-          <ListaUsuarios />
-        </Suspense>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-sm">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 shrink-0">
+              <ShieldAlert size={23} />
+            </div>
+
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-white leading-tight">
+                Gestão do Condomínio
+              </h1>
+              <p className="text-slate-400 text-sm mt-1">
+                Administração e configurações do condomínio
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 min-[560px]:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3.5">
+          {opcoesGestao.map((opcao) => {
+            const Icone = opcao.icone;
+
+            return (
+              <Link
+                key={opcao.href}
+                href={opcao.href}
+                className="group relative min-w-0 bg-slate-800 border border-slate-700 rounded-xl p-3 sm:p-4 hover:border-blue-500/60 hover:bg-slate-800/80 transition-all"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                    <Icone size={20} />
+                  </div>
+
+                  <ChevronRight
+                    size={17}
+                    className="text-slate-600 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0"
+                  />
+                </div>
+
+                <h2 className="text-sm sm:text-base font-semibold mt-3 mb-1.5 leading-snug text-white">
+                  {opcao.titulo}
+                </h2>
+
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {opcao.descricao}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

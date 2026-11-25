@@ -43,10 +43,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // O condomínio sempre vem do perfil autenticado.
     const condominioId = perfil.condominio_id;
 
     // 3. Receber e validar os dados.
-    const body = await request.json();
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Os dados enviados são inválidos." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        { error: "Os dados enviados são inválidos." },
+        { status: 400 }
+      );
+    }
+
+    const dados = body as Record<string, unknown>;
 
     const {
       nome,
@@ -58,7 +81,7 @@ export async function POST(request: Request) {
       email,
       senha,
       categoria_id,
-    } = body;
+    } = dados;
 
     if (
       typeof nome !== "string" ||
@@ -67,7 +90,8 @@ export async function POST(request: Request) {
       !email.trim() ||
       typeof senha !== "string" ||
       senha.length < 6 ||
-      !categoria_id
+      categoria_id == null ||
+      categoria_id === ""
     ) {
       return NextResponse.json(
         { error: "Preencha nome, e-mail, senha e categoria corretamente." },
@@ -75,27 +99,54 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validar os campos opcionais antes de utilizar trim().
+    const camposOpcionais = [
+      especialidade,
+      cpf_cnpj,
+      telefone,
+      whatsapp,
+      endereco,
+    ];
+
     if (
-      telefone != null &&
-      typeof telefone !== "string"
+      camposOpcionais.some(
+        (campo) => campo != null && typeof campo !== "string"
+      )
     ) {
       return NextResponse.json(
-        { error: "Telefone inválido." },
+        { error: "Um ou mais campos opcionais possuem formato inválido." },
         { status: 400 }
       );
     }
 
-    if (
-      whatsapp != null &&
-      typeof whatsapp !== "string"
-    ) {
-      return NextResponse.json(
-        { error: "WhatsApp inválido." },
-        { status: 400 }
-      );
-    }
-
+    const nomeNormalizado = nome.trim();
     const emailNormalizado = email.trim().toLowerCase();
+
+    const especialidadeNormalizada =
+      typeof especialidade === "string"
+        ? especialidade.trim() || null
+        : null;
+
+    const cpfCnpjNormalizado =
+      typeof cpf_cnpj === "string"
+        ? cpf_cnpj.trim() || null
+        : null;
+
+    const telefoneNormalizado =
+      typeof telefone === "string"
+        ? telefone.trim() || null
+        : null;
+
+    const whatsappNormalizado =
+      typeof whatsapp === "string"
+        ? whatsapp.trim() || null
+        : null;
+
+    const enderecoNormalizado =
+      typeof endereco === "string"
+        ? endereco.trim() || null
+        : null;
+
     const categoriaId = Number(categoria_id);
 
     if (!Number.isInteger(categoriaId) || categoriaId <= 0) {
@@ -142,16 +193,16 @@ export async function POST(request: Request) {
     }
 
     // 6. Criar usuário no Supabase Auth.
-    // O gatilho handle_new_user() consumirá a autorização
-    // e criará o perfil como prestador.
+    // O trigger handle_new_user() consumirá a autorização
+    // e criará o perfil como prestador no condomínio correto.
     const { data: authData, error: createUserError } =
       await supabaseAdmin.auth.admin.createUser({
         email: emailNormalizado,
         password: senha,
         email_confirm: true,
         user_metadata: {
-          nome: nome.trim(),
-          telefone: telefone?.trim() || null,
+          nome: nomeNormalizado,
+          telefone: telefoneNormalizado,
           cadastro_prestador_token: token,
         },
       });
@@ -165,17 +216,16 @@ export async function POST(request: Request) {
 
     usuarioId = authData.user.id;
 
-    // 7. Criar cadastro do responsável no condomínio correto.
-    // Telefone e WhatsApp são armazenados separadamente.
+    // 7. Criar cadastro do prestador no mesmo condomínio.
     const { error: insertError } = await supabaseAdmin
       .from("prestadores")
       .insert({
-        nome: nome.trim(),
-        especialidade: especialidade?.trim() || null,
-        cpf_cnpj: cpf_cnpj?.trim() || null,
-        telefone: telefone?.trim() || null,
-        whatsapp: whatsapp?.trim() || null,
-        endereco: endereco?.trim() || null,
+        nome: nomeNormalizado,
+        especialidade: especialidadeNormalizada,
+        cpf_cnpj: cpfCnpjNormalizado,
+        telefone: telefoneNormalizado,
+        whatsapp: whatsappNormalizado,
+        endereco: enderecoNormalizado,
         email: emailNormalizado,
         usuario_id: usuarioId,
         categoria_id: categoriaId,
@@ -209,10 +259,18 @@ export async function POST(request: Request) {
 
     // Remove autorização caso ainda não tenha sido consumida.
     if (token) {
-      await supabaseAdmin
-        .from("cadastro_autorizacoes_prestadores")
-        .delete()
-        .eq("token", token);
+      const { error: authorizationDeleteError } =
+        await supabaseAdmin
+          .from("cadastro_autorizacoes_prestadores")
+          .delete()
+          .eq("token", token);
+
+      if (authorizationDeleteError) {
+        console.error(
+          "Erro ao excluir autorização temporária:",
+          authorizationDeleteError
+        );
+      }
     }
 
     const mensagem =
