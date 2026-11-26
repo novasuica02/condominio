@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,6 +17,9 @@ import {
   Check,
   X,
   Clock,
+  Pencil,
+  Save,
+  Power,
 } from "lucide-react";
 
 type Categoria = {
@@ -45,6 +47,7 @@ export default function GerenciarProfissionaisPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [salvandoCategoria, setSalvandoCategoria] = useState(false);
 
   const [condominioId, setCondominioId] = useState<number | null>(null);
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
@@ -60,7 +63,14 @@ export default function GerenciarProfissionaisPage() {
   const [endereco, setEndereco] = useState("");
   const [observacao, setObservacao] = useState("");
 
-  // Carregar profissionais e categorias do condomínio
+  const [novaCategoria, setNovaCategoria] = useState("");
+  const [categoriaEditandoId, setCategoriaEditandoId] = useState<number | null>(null);
+  const [categoriaEditandoNome, setCategoriaEditandoNome] = useState("");
+  const [modalCategoriasAberto, setModalCategoriasAberto] = useState(false);
+
+  // Carregar profissionais e todas as categorias do condomínio.
+  // Categorias inativas continuam carregadas para preservar a identificação
+  // dos profissionais que já estão vinculados a elas.
   const carregar = async () => {
     setLoading(true);
     setErro("");
@@ -104,7 +114,6 @@ export default function GerenciarProfissionaisPage() {
       .from("categorias_profissionais")
       .select("id, nome, ativo")
       .eq("condominio_id", perfil.condominio_id)
-      .eq("ativo", true)
       .order("nome");
 
     if (categoriasError) {
@@ -150,7 +159,118 @@ export default function GerenciarProfissionaisPage() {
     setObservacao("");
   };
 
-  // Cadastrar profissional diretamente como aprovado pelo administrador
+  const limparEdicaoCategoria = () => {
+    setCategoriaEditandoId(null);
+    setCategoriaEditandoNome("");
+  };
+
+  // Cadastrar ou editar categoria profissional.
+  const handleSalvarCategoria = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!condominioId) {
+      setErro("Não foi possível identificar o condomínio.");
+      return;
+    }
+
+    const nomeNormalizado = categoriaEditandoId !== null
+      ? categoriaEditandoNome.trim()
+      : novaCategoria.trim();
+
+    if (!nomeNormalizado) {
+      setErro("Informe o nome da categoria.");
+      return;
+    }
+
+    const duplicada = categorias.some(
+      (categoria) =>
+        categoria.id !== categoriaEditandoId &&
+        categoria.nome.trim().toLocaleLowerCase("pt-BR") ===
+          nomeNormalizado.toLocaleLowerCase("pt-BR")
+    );
+
+    if (duplicada) {
+      setErro("Já existe uma categoria com esse nome neste condomínio.");
+      return;
+    }
+
+    setSalvandoCategoria(true);
+    setErro("");
+    setSucesso("");
+
+    const supabase = createClient();
+
+    const resultado = categoriaEditandoId !== null
+      ? await supabase
+          .from("categorias_profissionais")
+          .update({ nome: nomeNormalizado })
+          .eq("id", categoriaEditandoId)
+          .eq("condominio_id", condominioId)
+      : await supabase
+          .from("categorias_profissionais")
+          .insert({
+            nome: nomeNormalizado,
+            ativo: true,
+            condominio_id: condominioId,
+          });
+
+    if (resultado.error) {
+      setErro("Não foi possível salvar a categoria: " + resultado.error.message);
+      setSalvandoCategoria(false);
+      return;
+    }
+
+    setNovaCategoria("");
+    limparEdicaoCategoria();
+    setSucesso(
+      categoriaEditandoId !== null
+        ? "Categoria atualizada com sucesso."
+        : "Categoria cadastrada e ativada com sucesso."
+    );
+
+    await carregar();
+    setSalvandoCategoria(false);
+  };
+
+  // Ativar ou desativar categoria sem apagar os vínculos existentes.
+  const handleAlternarCategoria = async (categoria: Categoria) => {
+    if (!condominioId) return;
+
+    const acao = categoria.ativo ? "desativar" : "ativar";
+    if (
+      !confirm(
+        `Deseja realmente ${acao} a categoria "${categoria.nome}"?`
+      )
+    ) {
+      return;
+    }
+
+    setErro("");
+    setSucesso("");
+
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("categorias_profissionais")
+      .update({ ativo: !categoria.ativo })
+      .eq("id", categoria.id)
+      .eq("condominio_id", condominioId);
+
+    if (error) {
+      setErro("Não foi possível alterar a categoria: " + error.message);
+      return;
+    }
+
+    setSucesso(
+      categoria.ativo
+        ? "Categoria desativada. Os profissionais vinculados foram preservados."
+        : "Categoria ativada com sucesso."
+    );
+
+    await carregar();
+  };
+
+  // Cadastrar profissional diretamente como aprovado pelo administrador.
   const handleCriar = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -170,11 +290,11 @@ export default function GerenciarProfissionaisPage() {
     }
 
     const categoria = categorias.find(
-      (c) => c.id === Number(categoriaId)
+      (c) => c.id === Number(categoriaId) && c.ativo
     );
 
     if (!categoria) {
-      setErro("Categoria selecionada inválida.");
+      setErro("Categoria selecionada inválida ou inativa.");
       return;
     }
 
@@ -215,9 +335,9 @@ export default function GerenciarProfissionaisPage() {
     setSalvando(false);
   };
 
-  // Aprovar indicação
+  // Aprovar indicação.
   const handleAprovar = async (id: number) => {
-    if (!usuarioId) return;
+    if (!usuarioId || !condominioId) return;
 
     const supabase = createClient();
 
@@ -244,9 +364,10 @@ export default function GerenciarProfissionaisPage() {
     await carregar();
   };
 
-  // Rejeitar indicação
+  // Rejeitar indicação.
   const handleRejeitar = async (id: number) => {
     if (!confirm("Deseja realmente rejeitar esta indicação?")) return;
+    if (!usuarioId || !condominioId) return;
 
     const supabase = createClient();
 
@@ -272,9 +393,10 @@ export default function GerenciarProfissionaisPage() {
     await carregar();
   };
 
-  // Excluir profissional
+  // Excluir profissional.
   const handleDeletar = async (id: number) => {
     if (!confirm("Apagar este profissional definitivamente?")) return;
+    if (!condominioId) return;
 
     const supabase = createClient();
 
@@ -297,10 +419,10 @@ export default function GerenciarProfissionaisPage() {
   };
 
   const categoriaNome = (id: number | null) => {
-    return categorias.find((c) => c.id === id)?.nome || "Categoria";
+    return categorias.find((c) => c.id === id)?.nome || "Categoria não identificada";
   };
 
-  // Preparar número para ligação e WhatsApp
+  // Preparar número para ligação e WhatsApp.
   const normalizarNumero = (numero: string) => {
     let digitos = numero.replace(/\D/g, "");
 
@@ -311,7 +433,7 @@ export default function GerenciarProfissionaisPage() {
     return digitos;
   };
 
-  // Contatos clicáveis
+  // Contatos clicáveis.
   const renderContatos = (p: Profissional) => (
     <div className="flex flex-wrap gap-2 mt-1">
       {p.telefone && (
@@ -350,9 +472,10 @@ export default function GerenciarProfissionaisPage() {
     (p) => p.status === "rejeitado"
   );
 
+  const categoriasAtivas = categorias.filter((categoria) => categoria.ativo);
+
   return (
     <div className="flex-1 w-full flex flex-col items-center p-6 md:p-12 bg-slate-900 min-h-screen">
-
       {/* CABEÇALHO DO APLICATIVO */}
       <div className="w-full max-w-4xl">
         <Header
@@ -364,40 +487,239 @@ export default function GerenciarProfissionaisPage() {
 
       {/* PAINEL PRINCIPAL */}
       <div className="w-full max-w-4xl bg-slate-800 p-6 md:p-8 rounded-xl border border-slate-700 shadow-lg">
-
         {/* TÍTULO */}
-        <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
-          <UserCircle className="w-5 h-5 text-blue-400" />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700 pb-4">
+          <div className="flex items-center gap-2">
+            <UserCircle className="h-5 w-5 text-blue-400" />
+            <h1 className="text-xl font-bold text-white">
+              Gerenciar Serviços Profissionais
+            </h1>
+          </div>
 
-          <h1 className="text-xl font-bold text-white">
-            Gerenciar Serviços Profissionais
-          </h1>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setModalCategoriasAberto(true);
+              setErro("");
+              setSucesso("");
+            }}
+            className="h-9 border-yellow-400 bg-yellow-500 px-3 text-sm font-semibold text-slate-950 hover:border-yellow-300 hover:bg-yellow-400"
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Gerenciar Categorias
+          </Button>
         </div>
 
         {/* MENSAGENS */}
-        {erro && (
+        {!modalCategoriasAberto && erro && (
           <div className="mb-4 rounded-lg border border-red-800 bg-red-900/30 p-3 text-sm text-red-300">
             {erro}
           </div>
         )}
 
-        {sucesso && (
+        {!modalCategoriasAberto && sucesso && (
           <div className="mb-4 rounded-lg border border-green-800 bg-green-900/30 p-3 text-sm text-green-300">
             {sucesso}
           </div>
         )}
 
-        {/* FORMULÁRIO DE CADASTRO */}
+        {/* MODAL DE GERENCIAMENTO DE CATEGORIAS */}
+        {modalCategoriasAberto && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setModalCategoriasAberto(false);
+                limparEdicaoCategoria();
+              }
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="titulo-modal-categorias"
+              className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 p-4 shadow-2xl"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-700 pb-3">
+                <div>
+                  <h2
+                    id="titulo-modal-categorias"
+                    className="text-base font-semibold text-white"
+                  >
+                    Categorias de Profissionais
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    Cadastre, edite ou altere o status das categorias.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setModalCategoriasAberto(false);
+                    limparEdicaoCategoria();
+                  }}
+                  title="Fechar"
+                  className="h-8 w-8 text-slate-300 hover:bg-slate-700"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <form
+                onSubmit={handleSalvarCategoria}
+                className="mb-3 flex flex-col gap-2 sm:flex-row"
+              >
+                <Input
+                  placeholder={
+                    categoriaEditandoId !== null
+                      ? "Editar nome da categoria"
+                      : "Nome da nova categoria"
+                  }
+                  value={
+                    categoriaEditandoId !== null
+                      ? categoriaEditandoNome
+                      : novaCategoria
+                  }
+                  onChange={(e) =>
+                    categoriaEditandoId !== null
+                      ? setCategoriaEditandoNome(e.target.value)
+                      : setNovaCategoria(e.target.value)
+                  }
+                  required
+                  maxLength={80}
+                  className="h-9 bg-slate-900 border-slate-700 text-sm text-white placeholder:text-slate-500"
+                />
+
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={salvandoCategoria}
+                    className="h-9 flex-1 px-3 text-xs sm:flex-none bg-blue-600 hover:bg-blue-500 text-white"
+                  >
+                    {salvandoCategoria ? (
+                      "Salvando..."
+                    ) : categoriaEditandoId !== null ? (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Salvar
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Adicionar
+                      </>
+                    )}
+                  </Button>
+
+                  {categoriaEditandoId !== null && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={limparEdicaoCategoria}
+                      className="h-9 px-3 text-xs border-slate-600 text-slate-200 hover:bg-slate-700"
+                    >
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              </form>
+
+              {erro && (
+                <div className="mb-3 rounded-lg border border-red-800 bg-red-900/30 p-2.5 text-xs text-red-300">
+                  {erro}
+                </div>
+              )}
+
+              {sucesso && (
+                <div className="mb-3 rounded-lg border border-green-800 bg-green-900/30 p-2.5 text-xs text-green-300">
+                  {sucesso}
+                </div>
+              )}
+
+              {loading ? (
+                <p className="py-3 text-sm text-slate-400">
+                  Carregando categorias...
+                </p>
+              ) : categorias.length === 0 ? (
+                <p className="py-3 text-sm text-slate-400">
+                  Nenhuma categoria cadastrada. Adicione a primeira acima.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {categorias.map((categoria) => (
+                    <div
+                      key={categoria.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-700 bg-slate-900/60 px-3 py-2"
+                    >
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                        <p className="text-sm font-medium text-slate-200">
+                          {categoria.nome}
+                        </p>
+                        <span
+                          className={`text-[11px] font-medium ${
+                            categoria.ativo
+                              ? "text-green-400"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {categoria.ativo ? "Ativa" : "Inativa"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Editar categoria"
+                          onClick={() => {
+                            setCategoriaEditandoId(categoria.id);
+                            setCategoriaEditandoNome(categoria.nome);
+                            setNovaCategoria("");
+                            setErro("");
+                            setSucesso("");
+                          }}
+                          className="h-8 w-8 text-blue-300 hover:bg-blue-900/30 hover:text-blue-200"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleAlternarCategoria(categoria)}
+                          className={`h-8 px-2.5 text-xs ${
+                            categoria.ativo
+                              ? "border-amber-800 text-amber-300 hover:bg-amber-900/30"
+                              : "border-green-800 text-green-300 hover:bg-green-900/30"
+                          }`}
+                        >
+                          <Power className="mr-1.5 h-3.5 w-3.5" />
+                          {categoria.ativo ? "Desativar" : "Ativar"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* FORMULÁRIO DE CADASTRO DE PROFISSIONAL */}
         <form
           onSubmit={handleCriar}
-          className="mb-8 bg-slate-900/50 p-4 rounded-lg border border-slate-700"
+          className="mb-8 rounded-lg border border-slate-700 bg-slate-900/50 p-4"
         >
-          <h2 className="text-lg font-semibold text-white mb-4">
+          <h2 className="mb-4 text-lg font-semibold text-white">
             Cadastrar Novo Profissional
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               placeholder="Nome / Empresa"
               value={nome}
@@ -410,15 +732,11 @@ export default function GerenciarProfissionaisPage() {
               value={categoriaId}
               onChange={(e) => setCategoriaId(e.target.value)}
               required
-              className="w-full h-10 rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-white text-sm"
+              className="h-10 w-full rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white"
             >
               <option value="">Selecione uma categoria</option>
-
-              {categorias.map((categoria) => (
-                <option
-                  key={categoria.id}
-                  value={categoria.id}
-                >
+              {categoriasAtivas.map((categoria) => (
+                <option key={categoria.id} value={categoria.id}>
                   {categoria.nome}
                 </option>
               ))}
@@ -464,58 +782,52 @@ export default function GerenciarProfissionaisPage() {
               onChange={(e) => setObservacao(e.target.value)}
               className="md:col-span-2 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
             />
-
           </div>
 
           <Button
             type="submit"
-            disabled={salvando || categorias.length === 0}
+            disabled={salvando || categoriasAtivas.length === 0}
             className="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white"
           >
             {salvando ? (
               "Salvando..."
             ) : (
               <>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Adicionar Profissional
               </>
             )}
           </Button>
 
-          {categorias.length === 0 && (
-            <p className="text-amber-400 text-sm mt-3 text-center">
+          {categoriasAtivas.length === 0 && (
+            <p className="mt-3 text-center text-sm text-amber-400">
               Cadastre ou ative uma categoria antes de incluir profissionais.
             </p>
           )}
         </form>
 
         {/* INDICAÇÕES PENDENTES */}
-        <div className="border-t border-slate-700 pt-6 mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-amber-400" />
+        <div className="mb-8 border-t border-slate-700 pt-6">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+            <Clock className="h-5 w-5 text-amber-400" />
             Indicações Pendentes ({pendentes.length})
           </h2>
 
           {loading ? (
-            <p className="text-center text-slate-400 py-4">
-              Carregando...
-            </p>
+            <p className="py-4 text-center text-slate-400">Carregando...</p>
           ) : pendentes.length === 0 ? (
-            <p className="text-sm text-slate-400 py-4">
+            <p className="py-4 text-sm text-slate-400">
               Nenhuma indicação aguardando aprovação.
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {pendentes.map((p) => (
                 <div
                   key={p.id}
-                  className="border border-amber-800 rounded-lg p-4 flex flex-col gap-3 bg-slate-900/50"
+                  className="flex flex-col gap-3 rounded-lg border border-amber-800 bg-slate-900/50 p-4"
                 >
                   <div>
-                    <h3 className="font-bold text-white text-lg">
-                      {p.nome}
-                    </h3>
-
+                    <h3 className="text-lg font-bold text-white">{p.nome}</h3>
                     <span className="text-sm font-medium text-blue-300">
                       {categoriaNome(p.categoria_id)}
                     </span>
@@ -524,19 +836,19 @@ export default function GerenciarProfissionaisPage() {
                   {renderContatos(p)}
 
                   {p.endereco && (
-                    <span className="text-sm text-slate-300 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-slate-500" />
+                    <span className="flex items-center gap-2 text-sm text-slate-300">
+                      <MapPin className="h-4 w-4 text-slate-500" />
                       {p.endereco}
                     </span>
                   )}
 
-                  <div className="flex gap-2 mt-2">
+                  <div className="mt-2 flex gap-2">
                     <Button
                       type="button"
                       onClick={() => handleAprovar(p.id)}
-                      className="flex-1 bg-green-600 hover:bg-green-500 text-white"
+                      className="flex-1 bg-green-600 text-white hover:bg-green-500"
                     >
-                      <Check className="w-4 h-4 mr-1" />
+                      <Check className="mr-1 h-4 w-4" />
                       Aprovar
                     </Button>
 
@@ -546,7 +858,7 @@ export default function GerenciarProfissionaisPage() {
                       onClick={() => handleRejeitar(p.id)}
                       className="flex-1 border-red-700 text-red-300 hover:bg-red-900/30"
                     >
-                      <X className="w-4 h-4 mr-1" />
+                      <X className="mr-1 h-4 w-4" />
                       Rejeitar
                     </Button>
                   </div>
@@ -558,50 +870,45 @@ export default function GerenciarProfissionaisPage() {
 
         {/* PROFISSIONAIS APROVADOS */}
         <div className="border-t border-slate-700 pt-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+          <h2 className="mb-4 text-lg font-semibold text-white">
             Profissionais Publicados ({aprovados.length})
           </h2>
 
           {loading ? (
-            <p className="text-center text-slate-400 py-4">
-              Carregando...
-            </p>
+            <p className="py-4 text-center text-slate-400">Carregando...</p>
           ) : aprovados.length === 0 ? (
-            <p className="text-center text-slate-400 py-8">
+            <p className="py-8 text-center text-slate-400">
               Nenhum profissional aprovado.
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {aprovados.map((p) => (
                 <div
                   key={p.id}
-                  className="border border-slate-700 rounded-lg p-4 flex flex-col gap-3 bg-slate-800 shadow-sm relative"
+                  className="relative flex flex-col gap-3 rounded-lg border border-slate-700 bg-slate-800 p-4 shadow-sm"
                 >
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDeletar(p.id)}
-                    className="absolute top-2 right-2 text-red-400 hover:bg-red-900/30 hover:text-red-300"
+                    className="absolute right-2 top-2 text-red-400 hover:bg-red-900/30 hover:text-red-300"
                     title="Excluir profissional"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
 
                   <div className="pr-8">
-                    <h3 className="font-bold text-white text-lg">
-                      {p.nome}
-                    </h3>
-
-                    <span className="text-sm font-medium text-blue-300 bg-blue-900/30 px-2 py-0.5 rounded-full w-fit inline-block mt-1 border border-blue-800">
+                    <h3 className="text-lg font-bold text-white">{p.nome}</h3>
+                    <span className="mt-1 inline-block w-fit rounded-full border border-blue-800 bg-blue-900/30 px-2 py-0.5 text-sm font-medium text-blue-300">
                       {categoriaNome(p.categoria_id)}
                     </span>
                   </div>
 
-                  <div className="flex flex-col gap-1.5 mt-1">
+                  <div className="mt-1 flex flex-col gap-1.5">
                     {p.cpf_cnpj && (
-                      <span className="text-sm text-slate-300 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-slate-500" />
+                      <span className="flex items-center gap-2 text-sm text-slate-300">
+                        <FileText className="h-4 w-4 text-slate-500" />
                         {p.cpf_cnpj}
                       </span>
                     )}
@@ -609,15 +916,15 @@ export default function GerenciarProfissionaisPage() {
                     {renderContatos(p)}
 
                     {p.endereco && (
-                      <span className="text-sm text-slate-300 flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-slate-500" />
+                      <span className="flex items-center gap-2 text-sm text-slate-300">
+                        <MapPin className="h-4 w-4 text-slate-500" />
                         {p.endereco}
                       </span>
                     )}
                   </div>
 
                   {p.observacao && (
-                    <div className="mt-2 bg-slate-900/50 p-3 rounded text-xs text-slate-300 italic border border-slate-700">
+                    <div className="mt-2 rounded border border-slate-700 bg-slate-900/50 p-3 text-xs italic text-slate-300">
                       "{p.observacao}"
                     </div>
                   )}
@@ -629,8 +936,8 @@ export default function GerenciarProfissionaisPage() {
 
         {/* INDICAÇÕES REJEITADAS */}
         {rejeitados.length > 0 && (
-          <div className="border-t border-slate-700 mt-8 pt-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
+          <div className="mt-8 border-t border-slate-700 pt-6">
+            <h2 className="mb-4 text-lg font-semibold text-white">
               Indicações Rejeitadas ({rejeitados.length})
             </h2>
 
@@ -638,13 +945,10 @@ export default function GerenciarProfissionaisPage() {
               {rejeitados.map((p) => (
                 <div
                   key={p.id}
-                  className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-slate-700 bg-slate-900/40"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-900/40 p-3"
                 >
                   <div>
-                    <p className="font-medium text-slate-200">
-                      {p.nome}
-                    </p>
-
+                    <p className="font-medium text-slate-200">{p.nome}</p>
                     <p className="text-xs text-slate-400">
                       {categoriaNome(p.categoria_id)}
                     </p>
@@ -658,14 +962,13 @@ export default function GerenciarProfissionaisPage() {
                     className="text-red-400 hover:bg-red-900/30 hover:text-red-300"
                     title="Excluir indicação"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
